@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نُظم | منظومة التقويم الذاتي والاعتماد المدرسي</title>
+<style>
+:root{
+  --ink:#1c2033; --ink-soft:#4a4f6a; --muted:#767c9c;
+  --bg:#eef0fa; --surface:#ffffff; --surface-2:#f6f7fd;
+  --line:#e1e3f2;
+  --indigo:#372f78; --indigo-2:#4b3fa0; --indigo-ghost:#efedfb;
+  --teal:#0e7d78; --teal-ghost:#e4f5f3;
+  --coral:#d94f3d; --coral-ghost:#fbe9e6;
+  --amber:#c68a1a; --amber-ghost:#faf1de;
+  --green:#1f8a5a; --green-ghost:#e5f6ee;
+  --radius:14px;
+  --shadow:0 1px 2px rgba(28,32,51,.04), 0 8px 24px rgba(28,32,51,.06);
+}
+*{box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Segoe UI","Tahoma",-apple-system,Arial,sans-serif;
+  font-size:15px; line-height:1.6;
+}
+a{color:inherit}
+button{font-family:inherit; cursor:pointer}
+input,textarea,select{font-family:inherit; font-size:14px}
+
+/* ===== Shell layout ===== */
+.shell{display:flex; min-height:100vh}
+.rail{
+  width:264px; flex:0 0 264px; background:var(--indigo);
+  color:#fff; display:flex; flex-direction:column;
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+}
+.rail-brand{padding:22px 20px 16px; border-bottom:1px solid rgba(255,255,255,.12)}
+.rail-brand .mark{
+  width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#7a6ff0,#3fb9ad);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff;margin-bottom:10px;
+}
+.rail-brand h1{font-size:17px;margin:0 0 2px;font-weight:800;letter-spacing:.2px}
+.rail-brand p{font-size:12px;margin:0;color:rgba(255,255,255,.65)}
+.rail-nav{padding:14px 10px; flex:1}
+.rail-group-label{font-size:11px; color:rgba(255,255,255,.45); padding:14px 12px 6px; letter-spacing:.4px}
+.rail-btn{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:right;
+  padding:10px 12px; border:0; background:transparent; color:rgba(255,255,255,.82);
+  border-radius:10px; font-size:14px; margin-bottom:2px; transition:.15s;
+}
+.rail-btn .ic{width:20px; text-align:center; font-size:15px}
+.rail-btn:hover{background:rgba(255,255,255,.08); color:#fff}
+.rail-btn.active{background:#fff; color:var(--indigo); font-weight:700}
+.rail-foot{padding:14px 18px; font-size:11px; color:rgba(255,255,255,.4); border-top:1px solid rgba(255,255,255,.12)}
+
+.main{flex:1; min-width:0; display:flex; flex-direction:column}
+.topbar{
+  background:var(--surface); border-bottom:1px solid var(--line);
+  padding:14px 26px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  position:sticky; top:0; z-index:5;
+}
+.topbar .school{display:flex; flex-direction:column; gap:2px}
+.topbar .school b{font-size:15px}
+.topbar .school span{font-size:12px; color:var(--muted)}
+.topbar .stat-pills{display:flex; gap:10px; align-items:center}
+.pill{
+  padding:7px 14px; border-radius:999px; font-size:13px; font-weight:700; display:flex; gap:6px; align-items:center;
+  background:var(--surface-2); border:1px solid var(--line); color:var(--ink-soft);
+}
+.pill.big{font-size:14px}
+.pill .n{font-weight:800}
+.lvl-التميز{background:var(--green-ghost); color:var(--green); border-color:transparent}
+.lvl-التقدم{background:#e6ecfb; color:var(--indigo-2); border-color:transparent}
+.lvl-الانطلاق{background:var(--amber-ghost); color:var(--amber); border-color:transparent}
+.lvl-التهيئة{background:var(--coral-ghost); color:var(--coral); border-color:transparent}
+.lvl-لمبدأ{background:#eee; color:#888; border-color:transparent}
+
+.content{padding:24px 26px 60px; max-width:1220px; width:100%; margin:0 auto}
+.view{display:none}
+.view.active{display:block; animation:fadein .25s ease}
+@keyframes fadein{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none}}
+
+.view-head{margin-bottom:20px}
+.view-head h2{font-size:22px; margin:0 0 4px; font-weight:800}
+.view-head p{margin:0; color:var(--muted); font-size:13.5px; max-width:760px}
+.crumbs{font-size:12.5px; color:var(--muted); margin-bottom:8px}
+.crumbs button{background:none;border:0;color:var(--indigo-2); font-weight:700; padding:0}
+
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow)}
+.pad{padding:20px}
+
+/* dashboard */
+.grid-4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.grid-2{display:grid; grid-template-columns:1.3fr .9fr; gap:16px}
+@media (max-width:980px){.grid-4{grid-template-columns:repeat(2,1fr)} .grid-2{grid-template-columns:1fr}}
+
+.hero{
+  background:linear-gradient(120deg, var(--indigo) 0%, #2a2560 100%);
+  color:#fff; border-radius:18px; padding:26px 28px; display:flex; justify-content:space-between; gap:24px;
+  margin-bottom:18px; overflow:hidden; position:relative;
+}
+.hero:before{content:"";position:absolute; inset:0; background:radial-gradient(circle at 85% 20%, rgba(255,255,255,.08), transparent 55%)}
+.hero-left{position:relative; z-index:1}
+.hero-left .tag{font-size:12px; background:rgba(255,255,255,.15); padding:4px 10px; border-radius:999px; display:inline-block; margin-bottom:10px}
+.hero-left h2{margin:0 0 6px; font-size:24px}
+.hero-left p{margin:0; color:rgba(255,255,255,.75); max-width:480px; font-size:13.5px}
+.hero-score{position:relative; z-index:1; text-align:center; min-width:180px}
+.gauge-num{font-size:44px; font-weight:800; line-height:1}
+.gauge-lbl{font-size:12.5px; color:rgba(255,255,255,.7); margin-top:4px}
+.hero-badge{margin-top:10px; display:inline-block}
+
+.domain-card{padding:18px; display:flex; flex-direction:column; gap:10px; cursor:pointer; transition:.15s; border-top:4px solid transparent}
+.domain-card:hover{transform:translateY(-2px); box-shadow:0 10px 24px rgba(28,32,51,.1)}
+.domain-card .idx{font-size:12px; color:var(--muted); font-weight:700}
+.domain-card h3{margin:0; font-size:16px}
+.domain-card .w{font-size:12px; color:var(--muted)}
+.bar-track{height:8px; background:var(--surface-2); border-radius:99px; overflow:hidden}
+.bar-fill{height:100%; border-radius:99px; background:var(--indigo-2)}
+.domain-card .meta-row{display:flex; justify-content:space-between; font-size:12px; color:var(--muted)}
+.domain-card .pct{font-size:26px; font-weight:800}
+.domain-card .goto{font-size:12.5px; font-weight:700; color:var(--indigo-2); display:flex; align-items:center; gap:4px}
+
+.ai-box{border-radius:var(--radius); background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow); padding:20px}
+.ai-box h3{margin:0 0 4px; font-size:15.5px; display:flex; align-items:center; gap:8px}
+.ai-box .sub{color:var(--muted); font-size:12.5px; margin-bottom:14px}
+.ai-item{display:flex; gap:10px; padding:11px 0; border-top:1px dashed var(--line)}
+.ai-item:first-of-type{border-top:0}
+.ai-item .dot{width:9px;height:9px;border-radius:50%; margin-top:6px; flex:0 0 auto}
+.ai-item b{font-size:13.5px}
+.ai-item p{margin:2px 0 0; font-size:12.5px; color:var(--muted)}
+
+/* buttons */
+.btn{
+  border:1px solid var(--line); background:var(--surface); color:var(--ink); padding:9px 15px;
+  border-radius:10px; font-size:13.5px; font-weight:700; display:inline-flex; align-items:center; gap:7px;
+}
+.btn:hover{border-color:#c9cceb}
+.btn.primary{background:var(--indigo); color:#fff; border-color:var(--indigo)}
+.btn.primary:hover{background:var(--indigo-2)}
+.btn.teal{background:var(--teal); color:#fff; border-color:var(--teal)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 11px; font-size:12.5px; border-radius:8px}
+.btn.danger{color:var(--coral); border-color:var(--coral-ghost); background:var(--coral-ghost)}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+
+/* criterion / indicator cards */
+.criterion-block{margin-bottom:22px}
+.criterion-title{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding-bottom:8px; border-bottom:2px solid var(--indigo-ghost);
+}
+.criterion-title h4{margin:0; font-size:15.5px}
+.criterion-title span{font-size:12px; color:var(--muted)}
+.ind-card{padding:16px 18px; margin-bottom:10px}
+.ind-top{display:flex; justify-content:space-between; gap:14px; align-items:flex-start}
+.ind-code{font-size:11px; font-weight:800; color:var(--indigo-2); background:var(--indigo-ghost); padding:2px 8px; border-radius:6px; display:inline-block; margin-bottom:6px}
+.ind-text{font-size:14.5px; font-weight:600; margin:0}
+.level-tag{font-size:11.5px; font-weight:800; padding:4px 10px; border-radius:999px; white-space:nowrap}
+.ind-controls{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px}
+@media (max-width:760px){.ind-controls{grid-template-columns:1fr}}
+.field-lbl{font-size:11.5px; color:var(--muted); font-weight:700; margin-bottom:5px; display:block}
+.range-row{display:flex; align-items:center; gap:10px}
+.range-row input[type=range]{flex:1; accent-color:var(--indigo-2)}
+.range-row .num{width:52px; text-align:center; font-weight:800; font-size:13.5px}
+.evi-row{display:flex; gap:6px}
+.evi-row input[type=text]{flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:8px}
+.evi-status{font-size:11px; margin-top:5px; display:flex; align-items:center; gap:5px}
+.evi-status.ok{color:var(--green)} .evi-status.bad{color:var(--muted)}
+.ind-notes{width:100%; margin-top:10px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; resize:vertical; min-height:38px; font-size:13px}
+
+/* gap engine */
+.gap-row{display:flex; gap:14px; padding:14px 16px; border-bottom:1px solid var(--line); align-items:flex-start}
+.gap-row:last-child{border-bottom:0}
+.gap-sev{width:6px; border-radius:6px; align-self:stretch; min-height:40px}
+.sev-high{background:var(--coral)} .sev-mid{background:var(--amber)} .sev-none{background:var(--line)}
+.gap-body b{font-size:13.5px}
+.gap-body p{margin:4px 0 0; font-size:12.5px; color:var(--muted)}
+.gap-body .chips{margin-top:6px; display:flex; gap:6px; flex-wrap:wrap}
+.chip{font-size:11px; padding:2px 9px; border-radius:999px; background:var(--surface-2); color:var(--ink-soft); border:1px solid var(--line)}
+
+/* tables and lists */
+.list-row{display:flex; justify-content:space-between; align-items:center; padding:13px 16px; border-bottom:1px solid var(--line)}
+.list-row:last-child{border-bottom:0}
+.list-row .t b{font-size:13.5px; display:block}
+.list-row .t span{font-size:12px; color:var(--muted)}
+.check-row{display:flex; gap:12px; align-items:flex-start; padding:14px 16px; border-bottom:1px solid var(--line)}
+.check-row:last-child{border-bottom:0}
+.check-row input{margin-top:3px; width:17px; height:17px; accent-color:var(--teal)}
+.check-row b{font-size:13.5px} .check-row p{margin:2px 0 0; font-size:12px; color:var(--muted)}
+
+.form-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+@media (max-width:760px){.form-grid{grid-template-columns:1fr}}
+.form-grid label{font-size:11.5px; color:var(--muted); font-weight:700; display:block; margin-bottom:5px}
+.form-grid input, .form-grid select, .form-grid textarea{width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:9px}
+
+/* nafes */
+.nafes-card{padding:18px}
+.nafes-card h4{margin:0 0 12px; font-size:15px}
+.nafes-field{margin-bottom:10px}
+.nafes-field label{font-size:12px; color:var(--muted); display:block; margin-bottom:4px}
+.nafes-field input{width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px}
+.compare-bars{display:flex; flex-direction:column; gap:12px; margin-top:8px}
+.cb-row{display:grid; grid-template-columns:90px 1fr 46px; gap:10px; align-items:center; font-size:12.5px}
+.cb-track{height:14px; background:var(--surface-2); border-radius:8px; overflow:hidden}
+.cb-fill{height:100%; border-radius:8px}
+
+.tabs{display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap}
+.tab-btn{padding:8px 14px; border-radius:999px; border:1px solid var(--line); background:var(--surface); font-size:13px; font-weight:700; color:var(--ink-soft)}
+.tab-btn.active{background:var(--indigo); color:#fff; border-color:var(--indigo)}
+
+.section-title{font-size:14px; font-weight:800; margin:22px 0 10px; display:flex; align-items:center; gap:8px}
+.help-note{background:var(--teal-ghost); color:#0b5a56; border:1px solid #cdeae7; border-radius:10px; padding:12px 14px; font-size:12.5px; margin-bottom:16px}
+.warn-note{background:var(--amber-ghost); color:#8a5f0d; border:1px solid #f0dcae; border-radius:10px; padding:12px 14px; font-size:12.5px; margin-bottom:16px}
+
+.template-item{display:flex; justify-content:space-between; align-items:center; padding:16px; border-bottom:1px solid var(--line)}
+.template-item:last-child{border-bottom:0}
+.template-item .ic{width:38px;height:38px;border-radius:10px;background:var(--indigo-ghost); color:var(--indigo-2); display:flex;align-items:center;justify-content:center; font-size:17px; flex:0 0 auto}
+.template-item b{font-size:13.5px; display:block}
+.template-item span{font-size:11.5px; color:var(--muted)}
+.t-row{display:flex; gap:12px; align-items:center}
+
+.acc{border:1px solid var(--line); border-radius:12px; margin-bottom:10px; overflow:hidden}
+.acc-head{padding:13px 16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:var(--surface-2)}
+.acc-head b{font-size:13.5px}
+.acc-body{padding:14px 16px; display:none}
+.acc-body.open{display:block}
+.qa{margin-bottom:12px; padding-bottom:12px; border-bottom:1px dashed var(--line)}
+.qa:last-child{border:0; margin:0; padding:0}
+.qa b{font-size:13px}
+.qa p{margin:3px 0 0; font-size:12.5px; color:var(--muted)}
+
+.modal-bg{position:fixed; inset:0; background:rgba(20,20,40,.45); display:none; align-items:center; justify-content:center; z-index:50; padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:#fff; border-radius:16px; max-width:640px; width:100%; max-height:88vh; overflow:auto; padding:24px}
+.modal h3{margin-top:0}
+.modal-close{float:left; background:none; border:0; font-size:20px; color:var(--muted)}
+
+.card,.domain-card,.ind-card,.gap-row,.template-item,.list-row,.check-row,.qa,.nafes-card{page-break-inside:avoid; break-inside:avoid}
+@media print{
+  .rail, .topbar, .no-print{display:none !important}
+  html, body{height:auto !important; overflow:visible !important; background:#fff}
+  .shell, .main{display:block !important; height:auto !important; overflow:visible !important}
+  .content{padding:0; max-width:none; margin:0}
+  body.printing-modal .view{display:none !important}
+  .modal-bg{position:static !important; inset:auto; background:#fff !important; display:block !important; padding:0 !important}
+  .modal{max-height:none !important; overflow:visible !important; box-shadow:none !important; border-radius:0 !important; max-width:none !important; width:100% !important; padding:0 !important}
+  body:not(.printing-modal) .modal-bg{display:none !important}
+  .grid-4, .grid-2{display:block !important}
+  .grid-4 > *, .grid-2 > *{margin-bottom:12px}
+  .hero{break-inside:avoid}
+}
+::-webkit-scrollbar{width:9px} ::-webkit-scrollbar-thumb{background:#c8cbe8; border-radius:9px}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- ======= Sidebar ======= -->
+  <aside class="rail">
+    <div class="rail-brand">
+      <div class="mark">ن</div>
+      <h1>نُظم للاعتماد المدرسي</h1>
+      <p>تطبيق عملي للتقويم الذاتي وفق 47 مؤشراً</p>
+    </div>
+    <nav class="rail-nav" id="railNav">
+      <div class="rail-group-label">نظرة عامة</div>
+      <button class="rail-btn" data-view="dashboard"><span class="ic">◈</span> لوحة المؤشرات</button>
+      <button class="rail-btn" data-view="guide"><span class="ic">📘</span> الدليل والمنهجية</button>
+
+      <div class="rail-group-label">المجالات الأربعة</div>
+      <button class="rail-btn" data-view="domain-1"><span class="ic">①</span> الإدارة المدرسية</button>
+      <button class="rail-btn" data-view="domain-2"><span class="ic">②</span> التعليم والتعلم</button>
+      <button class="rail-btn" data-view="domain-3"><span class="ic">③</span> نواتج التعلم</button>
+      <button class="rail-btn" data-view="domain-4"><span class="ic">④</span> البيئة المدرسية</button>
+
+      <div class="rail-group-label">أدوات التحليل</div>
+      <button class="rail-btn" data-view="nafes"><span class="ic">📊</span> حاسبة نافس</button>
+      <button class="rail-btn" data-view="gaps"><span class="ic">⚠️</span> النواقص</button>
+      <button class="rail-btn" data-view="samples"><span class="ic">🗂️</span> عينات</button>
+      <button class="rail-btn" data-view="readiness"><span class="ic">✅</span> الجاهزية</button>
+      <button class="rail-btn" data-view="plc"><span class="ic">👥</span> مجتمعات</button>
+
+      <div class="rail-group-label">موارد الزيارة</div>
+      <button class="rail-btn" data-view="templates"><span class="ic">📄</span> النماذج</button>
+      <button class="rail-btn" data-view="committees"><span class="ic">🏛️</span> اللجان</button>
+      <button class="rail-btn" data-view="interviews"><span class="ic">🎤</span> المقابلات</button>
+
+      <div class="rail-group-label">النظام</div>
+      <button class="rail-btn" data-view="settings"><span class="ic">⚙️</span> الإعدادات وربط Drive</button>
+    </nav>
+    <div class="rail-foot">يحفظ النظام بياناتك تلقائياً على هذا المتصفح.</div>
+  </aside>
+
+  <!-- ======= Main ======= -->
+  <div class="main">
+    <div class="topbar">
+      <div class="school">
+        <b id="tbSchoolName">مدرستي</b>
+        <span id="tbSchoolMeta">لم يتم إدخال بيانات المدرسة بعد</span>
+      </div>
+      <div class="stat-pills">
+        <span class="pill big" id="tbLevel">— بيانات غير كافية</span>
+        <span class="pill">الدرجة الموزونة <span class="n" id="tbScore">0%</span></span>
+        <button class="btn sm" onclick="go('settings')">🏫 بيانات المدرسة</button>
+      </div>
+    </div>
+
+    <div class="content" id="content">
+
+      <!-- ================= DASHBOARD ================= -->
+      <section class="view active" id="view-dashboard">
+        <div class="hero">
+          <div class="hero-left">
+            <span class="tag">هيئة تقويم التعليم والتدريب • 47 مؤشراً</span>
+            <h2>لوحة القيادة الذكية لجاهزية الاعتماد</h2>
+            <p>احتساب موزون مطابق لمنهجية معايير التقويم والتصنيف والاعتماد المدرسي: الإدارة 25%، التعليم والتعلم 35%، نواتج التعلم 25%، البيئة المدرسية 15%.</p>
+            <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap">
+              <button class="btn primary" onclick="loadSampleData()">⬇️ تحميل بيانات نموذجية من تقرير مدرسي فعلي</button>
+              <button class="btn ghost" style="background:rgba(255,255,255,.12); color:#fff; border-color:rgba(255,255,255,.3)" onclick="printDashboardReport()">🖨️ طباعة التقرير الإحصائي والرسوم البيانية</button>
+              <button class="btn ghost" style="background:rgba(255,255,255,.12); color:#fff; border-color:rgba(255,255,255,.3)" onclick="resetAll()">↺ تصفير كل البيانات</button>
+            </div>
+          </div>
+          <div class="hero-score">
+            <div class="gauge-num" id="heroScore">0%</div>
+            <div class="gauge-lbl">الدرجة الموزونة الإجمالية</div>
+            <span class="pill hero-badge" id="heroLevel">التهيئة</span>
+          </div>
+        </div>
+
+        <div class="grid-4" id="domainCards"></div>
+
+        <div class="grid-2" style="margin-top:16px">
+          <div class="ai-box">
+            <h3>🧠 المساعد الذكي لتشخيص جاهزية الاعتماد الخارجي</h3>
+            <div class="sub">تحليل آلي فوري لبيانات الروبك والشواهد لتحديد أولويات التحسين المباشرة.</div>
+            <div id="aiDiag"></div>
+          </div>
+          <div class="card pad">
+            <h3 style="margin:0 0 4px; font-size:15.5px">📎 حالة التوثيق</h3>
+            <div class="sub" style="color:var(--muted); font-size:12.5px; margin-bottom:14px">شواهد الأدلة المرتبطة بروابط Google Drive</div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px">
+              <span style="font-size:13px; color:var(--muted)">شواهد بروابط صالحة</span>
+              <b id="evCount" style="font-size:22px">0 / 52</b>
+            </div>
+            <div class="bar-track"><div class="bar-fill" id="evBar" style="width:0%; background:var(--teal)"></div></div>
+            <div style="margin-top:16px; display:flex; justify-content:space-between; align-items:baseline">
+              <span style="font-size:13px; color:var(--muted)">متحقق بتميز (4/4)</span>
+              <b id="excCount" style="font-size:18px">0</b>
+            </div>
+            <div style="margin-top:16px">
+              <button class="btn teal sm" style="width:100%; justify-content:center" onclick="go('settings')">🔗 إعداد ربط Google Drive</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= GUIDE ================= -->
+      <section class="view" id="view-guide">
+        <div class="view-head"><h2>الدليل والمنهجية</h2><p>ملخص إجرائي لآلية التقويم الذاتي المعتمدة من هيئة تقويم التعليم والتدريب.</p></div>
+        <div class="grid-2">
+          <div class="card pad">
+            <h3 style="margin-top:0; font-size:15px">أهداف التقويم الذاتي</h3>
+            <ul style="font-size:13.5px; color:var(--ink-soft); padding-inline-start:20px; line-height:2">
+              <li>ترسيخ ثقافة التقويم الذاتي داخل المدرسة.</li>
+              <li>تعزيز مشاركة أصحاب المصلحة في تقويم الأداء وتطويره.</li>
+              <li>تعزيز التطوير والتحسين المستمر وفق نتائج الدورة السابقة.</li>
+              <li>إيجاد حلول مبتكرة لمعالجة مشكلات المدرسة.</li>
+              <li>دعم الاستثمار الأمثل للموارد المادية والبشرية.</li>
+              <li>رفع مستوى جاهزية المدرسة للتقويم الخارجي واستدامة التميز.</li>
+            </ul>
+          </div>
+          <div class="card pad">
+            <h3 style="margin-top:0; font-size:15px">مراحل التطبيق الثلاث</h3>
+            <div class="qa"><b>1) الإعداد والتهيئة</b><p>تشكيل فريق التقويم الذاتي، ووضع خطته، ونشر ثقافته في المجتمع المدرسي.</p></div>
+            <div class="qa"><b>2) التنفيذ</b><p>التسجيل في منصة تميز، تعبئة نموذج الجاهزية، وتطبيق أدوات التقويم السبع لجمع الأدلة.</p></div>
+            <div class="qa"><b>3) الإغلاق</b><p>إدخال البيانات، حفظ الملف الوثائقي، بناء خطة التحسين ورفعها ومتابعتها.</p></div>
+          </div>
+        </div>
+
+        <div class="section-title">🎯 مستويات الأداء المعتمدة</div>
+        <div class="grid-4">
+          <div class="card pad"><span class="level-tag lvl-التميز">التميز</span><p style="font-size:12.5px; color:var(--muted); margin:10px 0 0">90% فأعلى — يتطلب استدامة التميز والابتكار.</p></div>
+          <div class="card pad"><span class="level-tag lvl-التقدم">التقدم</span><p style="font-size:12.5px; color:var(--muted); margin:10px 0 0">75% إلى أقل من 90% — استمرار المتابعة للتحسين.</p></div>
+          <div class="card pad"><span class="level-tag lvl-الانطلاق">الانطلاق</span><p style="font-size:12.5px; color:var(--muted); margin:10px 0 0">50% إلى أقل من 75% — تحسينات كبيرة مطلوبة.</p></div>
+          <div class="card pad"><span class="level-tag lvl-التهيئة">التهيئة</span><p style="font-size:12.5px; color:var(--muted); margin:10px 0 0">أقل من 50% — تدخلات جوهرية في معظم المجالات.</p></div>
+        </div>
+
+        <div class="section-title">🧰 أدوات التقويم السبع المعتمدة</div>
+        <div class="card pad" style="font-size:13.5px; color:var(--ink-soft); line-height:2.1">
+          تحليل وثائق المدرسة • الاستبانات (متعلم/معلم/أسرة) • المالحظة الصفية • مالحظة البيئة التعليمية •
+          المقابلات (متعلمين، معلمين، الموجه الطلابي، الإدارة) • الاختبارات الوطنية «نافس» والقدرات والتحصيلي • نظام الرخص المهنية للمعلمين.
+        </div>
+      </section>
+
+      <!-- ================= DOMAIN VIEWS (generated) ================= -->
+      <section class="view" id="view-domain-1"></section>
+      <section class="view" id="view-domain-2"></section>
+      <section class="view" id="view-domain-3"></section>
+      <section class="view" id="view-domain-4"></section>
+
+      <!-- ================= NAFES ================= -->
+      <section class="view" id="view-nafes">
+        <div class="view-head"><h2>حاسبة نتائج وتحليل اختبارات نافس الوطنية</h2><p>المؤشرات 3-1-1-1 إلى 3-1-1-6 — أدخل متوسط درجات المدرسة لحساب الفجوة الأكاديمية ومسار التقدم السنوي.</p></div>
+        <div class="grid-4" id="nafesInputs" style="grid-template-columns:repeat(3,1fr)"></div>
+        <div style="margin:14px 0"><button class="btn primary" onclick="saveNafes()">💾 حفظ وتحليل النتائج</button></div>
+        <div class="card pad">
+          <h4 style="margin-top:0; font-size:15px">مقارنة أداء المدرسة مقابل المتوسط الوطني والدورة السابقة</h4>
+          <div class="compare-bars" id="nafesCompare"></div>
+        </div>
+      </section>
+
+      <!-- ================= GAPS ================= -->
+      <section class="view" id="view-gaps">
+        <div class="view-head"><h2>محرك الفحص الآلي للثغرات والنواقص التوثيقية</h2><p>تحليل فوري للمؤشرات الأضعف أو غير الموثقة والتي قد تُخفّض التقييم أثناء زيارة فريق التقويم الخارجي.</p></div>
+        <div class="tabs">
+          <button class="tab-btn active" data-gapf="all" onclick="setGapFilter('all')">الكل</button>
+          <button class="tab-btn" data-gapf="score" onclick="setGapFilter('score')">درجة منخفضة</button>
+          <button class="tab-btn" data-gapf="evidence" onclick="setGapFilter('evidence')">بلا شاهد موثّق</button>
+        </div>
+        <div class="card" id="gapsList"></div>
+      </section>
+
+      <!-- ================= SAMPLES ================= -->
+      <section class="view" id="view-samples">
+        <div class="view-head"><h2>سجل فحص عينات أعمال الطلاب والتغذية الراجعة</h2><p>وثّق نماذج التقويم وأنشطة التمايز حسب مستوى التحصيل.</p></div>
+        <div class="card pad">
+          <div class="form-grid">
+            <div><label>عنوان المهمة الأدائية</label><input id="sTitle" placeholder="مثال: مهمة أدائية - علوم - ثاني متوسط"></div>
+            <div><label>فئة التحصيل</label>
+              <select id="sCat"><option>مرتفع التحصيل</option><option>متوسط التحصيل</option><option>منخفض التحصيل</option></select>
+            </div>
+            <div><label>نوع التغذية الراجعة</label>
+              <select id="sFeed"><option>تصحيحية بنائية</option><option>تعزيزية</option><option>توضيحية</option><option>موجّهة نحو الهدف</option></select>
+            </div>
+          </div>
+          <div style="margin-top:12px"><button class="btn primary" onclick="addSample()">➕ إضافة</button></div>
+        </div>
+        <div class="section-title">العينات المسجّلة</div>
+        <div class="card" id="samplesList"></div>
+      </section>
+
+      <!-- ================= READINESS ================= -->
+      <section class="view" id="view-readiness">
+        <div class="view-head"><h2>قائمة الجاهزية اللوجستية للزيارة الميدانية</h2><p>تأكد من اكتمال هذه البنود قبل موعد زيارة فريق التقويم الخارجي.</p></div>
+        <div class="card" id="readinessList"></div>
+      </section>
+
+      <!-- ================= PLC ================= -->
+      <section class="view" id="view-plc">
+        <div class="view-head"><h2>سجل مجتمعات التعلم المهنية (PLC) وتبادل الزيارات</h2><p>وثّق جلسات التطوير المهني التشاركي بين المعلمين.</p></div>
+        <div class="card pad">
+          <div class="form-grid">
+            <div><label>موضوع الجلسة</label><input id="pTopic" placeholder="مثال: استراتيجيات التفكير الناقد"></div>
+            <div><label>القسم / الفريق</label><input id="pDept" placeholder="مثال: قسم الرياضيات"></div>
+            <div><label>التاريخ</label><input id="pDate" type="date"></div>
+          </div>
+          <div style="margin-top:12px"><button class="btn primary" onclick="addPlc()">➕ إضافة جلسة</button></div>
+        </div>
+        <div class="section-title">الجلسات المسجّلة</div>
+        <div class="card" id="plcList"></div>
+      </section>
+
+      <!-- ================= TEMPLATES ================= -->
+      <section class="view" id="view-templates">
+        <div class="view-head"><h2>بنك قوالب الشواهد الرسمية الجاهزة</h2><p>نماذج قابلة للتنزيل والتعبئة المباشرة، ثم رفعها على Drive وربطها بالمؤشر المناظر.</p></div>
+        <div class="card" id="templatesList"></div>
+      </section>
+
+      <!-- ================= COMMITTEES ================= -->
+      <section class="view" id="view-committees">
+        <div class="view-head"><h2>توليد تقارير اللجان المدرسية المستقلة</h2><p>تقرير مبني آلياً من بيانات المؤشرات المدخلة، جاهز للطباعة والاعتماد.</p></div>
+        <div class="card" id="committeesList"></div>
+      </section>
+
+      <!-- ================= INTERVIEWS ================= -->
+      <section class="view" id="view-interviews">
+        <div class="view-head"><h2>بنك ومحاور المقابلات المقننة لفريق التقويم الخارجي</h2><p>محاور أسئلة موزّعة على فئات المجتمع المدرسي، مرتبطة بمعايير التقويم.</p></div>
+        <div id="interviewAcc"></div>
+      </section>
+
+      <!-- ================= SETTINGS ================= -->
+      <section class="view" id="view-settings">
+        <div class="view-head"><h2>بيانات المدرسة وإعدادات ربط Google Drive</h2><p>اضبط بيانات المدرسة، واربط النظام بمساحة Drive لتوثيق الشواهد وربطها آلياً.</p></div>
+
+        <div class="section-title">🏫 بيانات المدرسة</div>
+        <div class="card pad">
+          <div class="form-grid">
+            <div><label>اسم المدرسة</label><input id="stName"></div>
+            <div><label>الرقم الوزاري</label><input id="stMinNo"></div>
+            <div><label>إدارة التعليم</label><input id="stAdmin"></div>
+            <div><label>مكتب التعليم</label><input id="stOffice"></div>
+            <div><label>نوع المدرسة</label>
+              <select id="stType"><option>حكومي</option><option>أهلي</option><option>عالمي</option></select>
+            </div>
+            <div><label>المرحلة الدراسية</label>
+              <select id="stStage"><option>رياض أطفال</option><option>ابتدائية</option><option>متوسطة</option><option>ثانوية</option></select>
+            </div>
+            <div><label>جنس المدرسة</label>
+              <select id="stGender"><option>بنين</option><option>بنات</option><option>مشترك</option></select>
+            </div>
+            <div><label>عدد الطلاب</label><input id="stStudents" type="number"></div>
+            <div><label>عدد الكادر التعليمي</label><input id="stTeachers" type="number"></div>
+          </div>
+          <div style="margin-top:14px"><button class="btn primary" onclick="saveSchool()">💾 حفظ بيانات المدرسة</button></div>
+        </div>
+
+        <div class="section-title">🔗 ربط مجلد Google Drive (الطريقة اليدوية — تعمل فوراً)</div>
+        <div class="help-note">
+          الصق رابط مشاركة مجلد Drive الخاص بأدلة المدرسة. سيُستخدم هذا الرابط كوجهة افتراضية عند الضغط على زر «رفع ملف» بجانب أي مؤشر — يفتح المجلد في تبويب جديد لرفع الملف يدوياً، ثم تلصق رابط الملف الناتج داخل حقل الشاهد وسيتحقق النظام تلقائياً من صحته ويحسب عدد الشواهد الموثقة.
+        </div>
+        <div class="card pad">
+          <label class="field-lbl">رابط مجلد Drive الخاص بالمدرسة</label>
+          <div class="evi-row"><input type="text" id="driveFolder" placeholder="https://drive.google.com/drive/folders/xxxxxxxx"><button class="btn sm" onclick="saveDriveFolder()">حفظ</button></div>
+          <div style="margin-top:14px"><button class="btn teal sm" onclick="openDriveFolder()">📁 فتح مجلد Drive الآن</button></div>
+        </div>
+
+        <div class="section-title">⚡ الربط المباشر عبر Google Drive API (اختياري، متقدم)</div>
+        <div class="warn-note">
+          يتيح هذا الخيار رفع الملفات مباشرة من داخل النظام وإدراج رابط الملف تلقائياً دون نسخ يدوي، عبر Google Identity Services وGoogle Picker.
+          يتطلب إنشاء «معرّف عميل OAuth» و«مفتاح API» من حساب <b>Google Cloud Console</b> خاص بالمدرسة (مجاني)، وتفعيل Google Drive API وGoogle Picker API، وإضافة نطاق هذه الصفحة ضمن Authorized Origins.
+          إن تعذّر تحميل واجهة Google داخل هذه البيئة، سيستمر النظام بالعمل تلقائياً بالطريقة اليدوية أعلاه.
+        </div>
+        <div class="card pad">
+          <div class="form-grid">
+            <div><label>Google API Key</label><input id="gApiKey" placeholder="AIza..."></div>
+            <div><label>OAuth Client ID</label><input id="gClientId" placeholder="xxxxx.apps.googleusercontent.com"></div>
+            <div><label>معرّف المجلد (Folder ID) اختياري</label><input id="gFolderId" placeholder="1AbCдEf..."></div>
+          </div>
+          <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap">
+            <button class="btn primary" onclick="saveDriveApi()">💾 حفظ الإعدادات</button>
+            <button class="btn" id="gConnectBtn" onclick="initGoogleDrive()">🔌 تفعيل الاتصال المباشر بـ Drive</button>
+          </div>
+          <div id="gStatus" style="margin-top:10px; font-size:12.5px; color:var(--muted)"></div>
+        </div>
+
+        <div class="section-title">🗃️ إدارة البيانات</div>
+        <div class="card pad" style="display:flex; gap:10px; flex-wrap:wrap">
+          <button class="btn" onclick="exportJson()">⬇️ تصدير نسخة احتياطية JSON</button>
+          <button class="btn" onclick="document.getElementById('importFile').click()">⬆️ استيراد نسخة احتياطية</button>
+          <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJson(event)">
+          <button class="btn danger" onclick="resetAll()">🗑️ تصفير كل شيء</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="printModalBg">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="printModalBody"></div>
+  </div>
+</div>
+
+<script>
+/* ===================================================================
+   1) DATA MODEL — 52 indicators across 4 domains (official structure)
+   =================================================================== */
+const DOMAIN_META = {
+  1:{name:'الإدارة المدرسية', weight:25, note:'التخطيط • قيادة العملية التعليمية • المجتمع المدرسي • التطوير المؤسسي'},
+  2:{name:'التعليم والتعلم', weight:35, note:'بناء خبرات التعلم • تقويم التعلم'},
+  3:{name:'نواتج التعلم', weight:25, note:'التحصيل التعليمي • التطور الشخصي والصحي والاجتماعي'},
+  4:{name:'البيئة المدرسية', weight:15, note:'المبنى المدرسي • الأمن والسلامة'},
+};
+
+// مطابق حرفياً لنموذج التقويم الذاتي الرسمي (الدورة الأولى) — 47 مؤشراً
+const DATA = {
+1:[
+ {c:'التخطيط', items:[
+   ['1-1-1-1','تضع المدرسة خطة تشغيلية مكتملة العناصر وفق أهداف تطويرية محددة'],
+   ['1-1-1-2','تتابع المدرسة تنفيذ خطتها وتطورها بما يضمن تحقيق أهدافها'],
+ ]},
+ {c:'قيادة العملية التعليمية', items:[
+   ['1-2-1-1','تعزز المدرسة القيم الإسلامية والهوية الوطنية'],
+   ['1-2-1-2','تلتزم المدرسة بقيم مهنة التعليم وأخلاقياتها'],
+   ['1-2-1-3','توفر المدرسة مناخاً آمناً للتعلم والنمو نفسياً واجتماعياً'],
+   ['1-2-1-4','تنشر المدرسة قواعد السلوك والمواظبة، وتتابع تطبيقها'],
+   ['1-2-1-5','توفر المدرسة برامج وأنشطة تربوية داعمة للسلوك الإيجابي'],
+   ['1-2-1-6','توفر المدرسة برامج وأنشطة إثرائية غير صفية؛ لتطوير مواهب المتعلمين وتهيئهم للمستقبل'],
+ ]},
+ {c:'المجتمع المدرسي', items:[
+   ['1-3-1-1','تعزز المدرسة بناء العلاقات الإيجابية والتعاون في المجتمع المدرسي'],
+   ['1-3-1-2','تعزز المدرسة مشاركة الأسرة في تعلم أبنائهم، والتحضير لمستقبلهم'],
+   ['1-3-1-3','تعزز المدرسة الشراكة المجتمعية لدعم التعلم والتأثير الإيجابي في المجتمع المحلي'],
+ ]},
+ {c:'التطوير المؤسسي', items:[
+   ['1-4-1-1','توفر المدرسة كادراً تعليمياً مكتملاً ومؤهلاً'],
+   ['1-4-1-2','توفر المدرسة كادراً إدارياً مكتملاً ومؤهلاً'],
+   ['1-4-1-3','تظهر المدرسة ثباتاً واستدامة مالية'],
+   ['1-4-1-4','تشجع المدرسة منسوبيها للحصول على الرخصة المهنية'],
+   ['1-4-1-5','تدعم المدرسة التطوير المهني لمنسوبيها وفقاً لنتائج تقويم الأداء الوظيفي واحتياجاتهم'],
+   ['1-4-1-6','تطبق المدرسة التقويم الذاتي المبني على المعايير المعتمدة من الهيئة'],
+   ['1-4-1-7','تنفذ المدرسة خطة للتحسين بناء على نتائج التقويم المدرسي، وتتابعها'],
+ ]},
+],
+2:[
+ {c:'بناء خبرات التعلم', items:[
+   ['2-1-1-1','توفر المدرسة فرصاً متكافئة للتعلم تلبي احتياجات المتعلمين بمن فيهم ذوو الإعاقة والموهوبون'],
+   ['2-1-1-2','تدعم المدرسة تنفيذ المناهج؛ لتحقيق نواتج التعلم المستهدفة وفق الخطة الدراسية'],
+   ['2-1-1-3','تنوع المدرسة في إستراتيجيات التدريس لتلبية احتياجات المتعلمين، ودعم تعلمهم'],
+   ['2-1-1-4','تفعل المدرسة التعلم الإلكتروني لتلبية احتياجات المتعلمين ودعم تعلمهم'],
+   ['2-1-1-5','توفر المدرسة أنشطة تعلم تطبيقية ترتبط بحياة المتعلمين'],
+   ['2-1-1-6','تنمي المدرسة المهارات القرائية والعددية الأساسية لدى المتعلمين'],
+   ['2-1-1-7','تنمي المدرسة مهارات التفكير العليا لدى المتعلمين'],
+   ['2-1-1-8','تنمي المدرسة المهارات العاطفية والاجتماعية لدى المتعلمين'],
+   ['2-1-1-9','تنمي المدرسة المهارات الرقمية لدى المتعلمين'],
+   ['2-1-1-10','تعزز المدرسة دافعية المتعلمين للتعلم والاستمتاع به'],
+ ]},
+ {c:'تقويم التعلم', items:[
+   ['2-2-1-1','تقوّم المدرسة أداء المتعلمين باستخدام أساليب وأدوات تقويم متنوعة وفاعلة'],
+   ['2-2-1-2','تحلل المدرسة نتائج التقويم، وتوظفها في تحسين نواتج التعلم بانتظام'],
+   ['2-2-1-3','تقدم المدرسة التغذية الراجعة للمتعلمين بانتظام'],
+ ]},
+],
+3:[
+ {c:'التحصيل التعليمي', items:[
+   ['3-1-1-1','يحقق المتعلمون نتائج متقدمة في مجال القراءة وفقاً للاختبارات الوطنية'],
+   ['3-1-1-2','يحقق المتعلمون نتائج متقدمة في مجال الرياضيات وفقاً للاختبارات الوطنية'],
+   ['3-1-1-3','يحقق المتعلمون نتائج متقدمة في مجال العلوم وفقاً للاختبارات الوطنية'],
+ ]},
+ {c:'التطور الشخصي والصحي والاجتماعي', items:[
+   ['3-2-1-1','يظهر المتعلمون الاعتزاز بالقيم والهوية الوطنية'],
+   ['3-2-1-2','يظهر المتعلمون اتجاهات إيجابية نحو ذواتهم'],
+   ['3-2-1-3','يظهر المتعلمون التزاماً بالممارسات الصحية السليمة'],
+   ['3-2-1-4','يشارك المتعلمون في الأنشطة المجتمعية والأعمال التطوعية'],
+   ['3-2-1-5','يلتزم المتعلمون بقواعد السلوك والانضباط المدرسي'],
+   ['3-2-1-6','يظهر المتعلمون القدرة على البحث والتعلم الذاتي'],
+   ['3-2-1-7','يظهر المتعلمون اعتزازاً بثقافتهم واحتراماً للتنوع الثقافي في المجتمع'],
+ ]},
+],
+4:[
+ {c:'المبنى المدرسي', items:[
+   ['4-1-1-1','تنظيم مبنى المدرسة ملائم لعدد المتعلمين والمرحلة العمرية'],
+   ['4-1-1-2','تتوافر فصول ومعامل ملائمة للعملية التعليمية تلبي احتياجات المتعلمين بمن فيهم ذوو الإعاقة'],
+   ['4-1-1-3','تلبي المرافق والخدمات الساندة احتياجات المتعلمين بمن فيهم ذوو الإعاقة'],
+ ]},
+ {c:'الأمن والسلامة', items:[
+   ['4-2-1-1','تتوافر في فصول المدرسة ومعاملها وجميع مرافقها متطلبات الأمن والسلامة'],
+   ['4-2-1-2','تعمل المدرسة على صيانة جميع مرافق المبنى وتجهيزاته بانتظام'],
+   ['4-2-1-3','تعمل المدرسة على نظافة المبنى المدرسي وجميع مرافقه بانتظام'],
+ ]},
+],
+};
+
+// Real reference values drawn from an actual school's 2025 evaluation report
+// (used only for the optional demo/sample loader — matched by exact/near-exact indicator wording).
+const SAMPLE_SCHOOL = {
+  name:'ابتدائية الصحافة الأهلية', minNo:'S-11619', admin:'الإدارة العامة للتعليم بمنطقة الرياض',
+  office:'مكتب التعليم الخاص', type:'أهلي', stage:'ابتدائية', gender:'بنين', students:191, teachers:20
+};
+// مطابقة حرفية 1:1 لتقرير التقويم الذاتي الرسمي (الدورة الأولى) لنفس المدرسة
+const SAMPLE_SCORES = {
+ '1-1-1-1':99.25,'1-1-1-2':75.00,
+ '1-2-1-1':95.25,'1-2-1-2':98.75,'1-2-1-3':86.50,'1-2-1-4':95.75,'1-2-1-5':89.75,'1-2-1-6':87.25,
+ '1-3-1-1':99.25,'1-3-1-2':83.75,'1-3-1-3':63.00,
+ '1-4-1-1':99.50,'1-4-1-2':100,'1-4-1-3':100,'1-4-1-4':80.50,'1-4-1-5':97.75,'1-4-1-6':99.00,'1-4-1-7':92.50,
+ '2-1-1-1':93.25,'2-1-1-2':99.75,'2-1-1-3':92.25,'2-1-1-4':84.75,'2-1-1-5':84.75,'2-1-1-6':91.50,'2-1-1-7':77.50,
+ '2-1-1-8':92.50,'2-1-1-9':74.25,'2-1-1-10':92.50,
+ '2-2-1-1':83.50,'2-2-1-2':99.50,'2-2-1-3':92.25,
+ '3-1-1-1':80.53,'3-1-1-2':82.46,'3-1-1-3':84.98,
+ '3-2-1-1':95.75,'3-2-1-2':96.75,'3-2-1-3':93.75,'3-2-1-4':75.00,'3-2-1-5':98.75,'3-2-1-6':79.75,'3-2-1-7':98.25,
+ '4-1-1-1':78.25,'4-1-1-2':84.50,'4-1-1-3':75.00,
+ '4-2-1-1':92.25,'4-2-1-2':99.75,'4-2-1-3':95.75,
+};
+
+const FLAT = []; // flattened indicator list [{code,domain,criterion,text}]
+for(const d in DATA){ DATA[d].forEach(block=> block.items.forEach(([code,text])=>{
+  FLAT.push({code, domain:+d, criterion:block.c, text});
+}));}
+
+/* ===================================================================
+   2) STATE — persisted in localStorage
+   =================================================================== */
+const STORE_KEY = 'schoolAccredSystem_v1';
+let state = loadState();
+
+function defaultState(){
+  const indicators = {};
+  FLAT.forEach(i=> indicators[i.code] = {score:0, evidence:'', notes:''});
+  return {
+    school:{name:'', minNo:'', admin:'', office:'', type:'حكومي', stage:'ابتدائية', gender:'بنين', students:'', teachers:''},
+    indicators,
+    nafes:{reading:{cur:'',target:'',prev:''}, math:{cur:'',target:'',prev:''}, science:{cur:'',target:'',prev:''}},
+    samples:[], readiness:{}, plc:[],
+    drive:{folder:'', apiKey:'', clientId:'', folderId:''},
+  };
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    const def = defaultState();
+    // merge to survive schema upgrades
+    FLAT.forEach(i=>{ if(!parsed.indicators[i.code]) parsed.indicators[i.code] = {score:0, evidence:'', notes:''}; });
+    return Object.assign(def, parsed, {indicators: Object.assign(def.indicators, parsed.indicators)});
+  }catch(e){ return defaultState(); }
+}
+function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+
+/* ===================================================================
+   3) SCORING HELPERS
+   =================================================================== */
+function levelOf(pct){
+  if(pct<=0) return {name:'لم يبدأ', cls:'لمبدأ'};
+  if(pct>=90) return {name:'التميز', cls:'التميز'};
+  if(pct>=75) return {name:'التقدم', cls:'التقدم'};
+  if(pct>=50) return {name:'الانطلاق', cls:'الانطلاق'};
+  return {name:'التهيئة', cls:'التهيئة'};
+}
+function rubricOf(pct){ if(pct<=0) return 0; if(pct>=90) return 4; if(pct>=75) return 3; if(pct>=50) return 2; return 1; }
+
+function domainAverage(domain){
+  const blocks = DATA[domain] || [];
+  if(!blocks.length) return 0;
+  const criterionAvgs = blocks.map(block=>{
+    const scores = block.items.map(([code])=> state.indicators[code].score || 0);
+    return scores.reduce((a,b)=>a+b,0) / scores.length;
+  });
+  return criterionAvgs.reduce((a,b)=>a+b,0) / criterionAvgs.length;
+}
+function weightedTotal(){
+  let total = 0;
+  for(const d in DOMAIN_META){ total += domainAverage(+d) * DOMAIN_META[d].weight/100; }
+  return total;
+}
+function isValidDriveLink(url){
+  return !!url && /drive\.google\.com|docs\.google\.com/i.test(url);
+}
+function evidenceStats(){
+  let ok=0, exc=0;
+  FLAT.forEach(i=>{
+    const rec = state.indicators[i.code];
+    if(isValidDriveLink(rec.evidence)) ok++;
+    if((rec.score||0) >= 90) exc++;
+  });
+  return {ok, exc, total:FLAT.length};
+}
+
+/* ===================================================================
+   4) NAVIGATION
+   =================================================================== */
+function go(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.rail-btn').forEach(b=>b.classList.remove('active'));
+  const el = document.getElementById('view-'+view);
+  if(el) el.classList.add('active');
+  const btn = document.querySelector('.rail-btn[data-view="'+view+'"]');
+  if(btn) btn.classList.add('active');
+  window.scrollTo(0,0);
+}
+document.getElementById('railNav').addEventListener('click', e=>{
+  const b = e.target.closest('.rail-btn'); if(!b) return; go(b.dataset.view);
+});
+
+/* ===================================================================
+   5) RENDER: TOPBAR + DASHBOARD
+   =================================================================== */
+function renderTopbar(){
+  const s = state.school;
+  document.getElementById('tbSchoolName').textContent = s.name || 'مدرستي';
+  document.getElementById('tbSchoolMeta').textContent = s.name
+    ? `${s.admin||'—'} • ${s.stage||''} ${s.gender?('- '+s.gender):''} • ${s.students? s.students+' طالباً':'—'}`
+    : 'لم يتم إدخال بيانات المدرسة بعد — الإعدادات ⚙️';
+  const total = weightedTotal();
+  const lvl = levelOf(total);
+  document.getElementById('tbScore').textContent = total.toFixed(1)+'%';
+  document.getElementById('tbLevel').textContent = lvl.name;
+  document.getElementById('tbLevel').className = 'pill big lvl-'+lvl.cls;
+}
+
+function renderDashboard(){
+  const total = weightedTotal();
+  const lvl = levelOf(total);
+  document.getElementById('heroScore').textContent = total.toFixed(1)+'%';
+  const hb = document.getElementById('heroLevel'); hb.textContent = lvl.name; hb.className='pill hero-badge lvl-'+lvl.cls;
+
+  const wrap = document.getElementById('domainCards');
+  wrap.innerHTML = '';
+  const barColors = {1:'#4b3fa0',2:'#0e7d78',3:'#c68a1a',4:'#d94f3d'};
+  for(const d in DOMAIN_META){
+    const meta = DOMAIN_META[d];
+    const avg = domainAverage(+d);
+    const items = FLAT.filter(i=>i.domain===+d);
+    const done = items.filter(i=>(state.indicators[i.code].score||0)>0).length;
+    const links = items.filter(i=>isValidDriveLink(state.indicators[i.code].evidence)).length;
+    const card = document.createElement('div');
+    card.className = 'card domain-card';
+    card.style.borderTopColor = barColors[d];
+    card.onclick = ()=> go('domain-'+d);
+    card.innerHTML = `
+      <div class="idx">المجال ${d}</div>
+      <h3>${meta.name}</h3>
+      <div class="w">${items.length} مؤشراً • وزن نسبي ${meta.weight}%</div>
+      <div class="pct" style="color:${barColors[d]}">${avg.toFixed(0)}%</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${avg}%; background:${barColors[d]}"></div></div>
+      <div class="meta-row"><span>مكتمل: ${done}/${items.length}</span><span>روابط: ${links}</span></div>
+      <div class="goto">فتح ومتابعة الشواهد ←</div>`;
+    wrap.appendChild(card);
+  }
+
+  // evidence card
+  const es = evidenceStats();
+  document.getElementById('evCount').textContent = `${es.ok} / ${es.total}`;
+  document.getElementById('evBar').style.width = (es.ok/es.total*100)+'%';
+  document.getElementById('excCount').textContent = es.exc;
+
+  // AI diagnostic: pick weakest 5 indicators (score>0 but <75, or score=0)
+  const ranked = FLAT.map(i=>({...i, score: state.indicators[i.code].score||0, evi: state.indicators[i.code].evidence}))
+    .sort((a,b)=> a.score-b.score).slice(0,5);
+  const box = document.getElementById('aiDiag');
+  if(ranked.every(r=>r.score===0 && !state.school.name)){
+    box.innerHTML = `<p style="color:var(--muted); font-size:13px">أدخل بيانات المدرسة ودرجات المؤشرات، أو اضغط «تحميل بيانات نموذجية» لمشاهدة التشخيص الآلي.</p>`;
+  } else {
+    box.innerHTML = ranked.map(r=>{
+      let dotColor, advice;
+      if(r.score>=90){dotColor='var(--green)'; advice='مؤشر متميز — يوصى بتوثيقه كنموذج مرجعي ومشاركته داخلياً لاستدامة التميز.';}
+      else if(r.score>=75){dotColor='var(--indigo-2)'; advice='أداء جيد — استمر بالمتابعة المنتظمة وتنويع الأساليب لبلوغ التميز.';}
+      else if(r.score>=50){dotColor='var(--amber)'; advice='يتطلب تحسينات ملموسة خلال الفصل الحالي وتوثيق شواهد إضافية.';}
+      else if(r.score>0){dotColor='var(--coral)'; advice='أولوية عاجلة: يتطلب تدخلاً جوهرياً وخطة تحسين موثّقة قبل الزيارة.';}
+      else {dotColor='#bbb'; advice='لم يتم تقييم هذا المؤشر بعد — أضف الدرجة والشاهد الآن.';}
+      const evTag = isValidDriveLink(r.evi) ? '' : ' — بلا شاهد موثّق على Drive';
+      return `<div class="ai-item"><span class="dot" style="background:${dotColor}"></span>
+        <div><b>${r.code} — ${r.text}</b><p>${advice}${evTag}</p></div></div>`;
+    }).join('');
+  }
+}
+
+/* ===================================================================
+   6) RENDER: DOMAIN VIEWS (indicator cards)
+   =================================================================== */
+function renderDomainView(d){
+  const meta = DOMAIN_META[d];
+  const el = document.getElementById('view-domain-'+d);
+  const avg = domainAverage(d);
+  let html = `
+    <div class="crumbs"><button onclick="go('dashboard')">لوحة المؤشرات</button> ← المجال ${d}</div>
+    <div class="view-head" style="display:flex; justify-content:space-between; align-items:flex-end; gap:14px; flex-wrap:wrap">
+      <div><h2>${meta.name}</h2><p>${meta.note} — الوزن النسبي ${meta.weight}% من الدرجة الكلية.</p></div>
+      <button class="btn no-print" onclick="printDomainReport(${d})">🖨️ طباعة إحصائيات المجال</button>
+    </div>
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card pad">
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px">
+          <span style="font-size:13px; color:var(--muted)">متوسط أداء المجال</span><b style="font-size:20px">${avg.toFixed(1)}%</b>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${avg}%"></div></div>
+      </div>
+      <div class="card pad" style="display:flex; align-items:center; justify-content:center">
+        <span class="level-tag lvl-${levelOf(avg).cls}" style="font-size:14px; padding:8px 18px">${levelOf(avg).name}</span>
+      </div>
+    </div>`;
+  DATA[d].forEach(block=>{
+    html += `<div class="criterion-block"><div class="criterion-title"><h4>${block.c}</h4><span>${block.items.length} مؤشرات</span></div>`;
+    block.items.forEach(([code,text])=>{
+      const rec = state.indicators[code];
+      const lvl = levelOf(rec.score||0);
+      const validEvi = isValidDriveLink(rec.evidence);
+      html += `
+      <div class="card ind-card" id="card-${code}">
+        <div class="ind-top">
+          <div><span class="ind-code">${code}</span><p class="ind-text">${text}</p></div>
+          <span class="level-tag lvl-${lvl.cls}" id="lvl-${code}">${lvl.name}</span>
+        </div>
+        <div class="ind-controls">
+          <div>
+            <span class="field-lbl">نسبة تحقق المؤشر (0–100%)</span>
+            <div class="range-row">
+              <input type="range" min="0" max="100" step="1" value="${rec.score||0}" oninput="updateScore('${code}', this.value)">
+              <span class="num" id="num-${code}">${rec.score||0}%</span>
+            </div>
+          </div>
+          <div>
+            <span class="field-lbl">رابط الشاهد (Google Drive)</span>
+            <div class="evi-row">
+              <input type="text" placeholder="الصق رابط ملف/مجلد Drive هنا" value="${rec.evidence||''}" oninput="updateEvidence('${code}', this.value)">
+              <button class="btn sm" title="فتح Drive لرفع ملف" onclick="attachFromDrive('${code}')">📁</button>
+              ${validEvi? `<a class="btn sm" href="${rec.evidence}" target="_blank" title="فتح الملف">↗</a>` : ''}
+            </div>
+            <div class="evi-status ${validEvi?'ok':'bad'}" id="evi-${code}">${validEvi? '✔ رابط Drive صالح ومرتبط':'— لم يُرفق شاهد بعد'}</div>
+          </div>
+        </div>
+        <textarea class="ind-notes" placeholder="ملاحظات فريق التقويم الذاتي..." oninput="updateNotes('${code}', this.value)">${rec.notes||''}</textarea>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  el.innerHTML = html;
+}
+function renderAllDomains(){ for(const d in DOMAIN_META) renderDomainView(+d); }
+
+function updateScore(code, val){
+  state.indicators[code].score = +val;
+  document.getElementById('num-'+code).textContent = val+'%';
+  const lvl = levelOf(+val);
+  const tag = document.getElementById('lvl-'+code);
+  if(tag){ tag.textContent = lvl.name; tag.className = 'level-tag lvl-'+lvl.cls; }
+  saveState(); renderTopbar(); renderDashboardLite();
+}
+function updateEvidence(code, val){
+  state.indicators[code].evidence = val.trim();
+  const ok = isValidDriveLink(val);
+  const st = document.getElementById('evi-'+code);
+  if(st){ st.textContent = ok? '✔ رابط Drive صالح ومرتبط' : '— لم يُرفق شاهد بعد'; st.className = 'evi-status '+(ok?'ok':'bad'); }
+  saveState(); renderDashboardLite();
+}
+function updateNotes(code, val){ state.indicators[code].notes = val; saveState(); }
+function renderDashboardLite(){ if(document.getElementById('view-dashboard').classList.contains('active')) renderDashboard(); }
+
+/* ===================================================================
+   7) GOOGLE DRIVE INTEGRATION
+   =================================================================== */
+let gapiReady=false, tokenClient=null, pickerLoaded=false, activeIndicatorForUpload=null;
+
+function openDriveFolder(){
+  const url = state.drive.folder || 'https://drive.google.com/drive/my-drive';
+  window.open(url, '_blank');
+}
+function saveDriveFolder(){
+  state.drive.folder = document.getElementById('driveFolder').value.trim();
+  saveState();
+  alert('تم حفظ رابط مجلد Drive.');
+}
+function saveDriveApi(){
+  state.drive.apiKey = document.getElementById('gApiKey').value.trim();
+  state.drive.clientId = document.getElementById('gClientId').value.trim();
+  state.drive.folderId = document.getElementById('gFolderId').value.trim();
+  saveState();
+  document.getElementById('gStatus').textContent = 'تم حفظ الإعدادات. اضغط «تفعيل الاتصال المباشر» لتجربة الربط.';
+}
+
+function attachFromDrive(code){
+  activeIndicatorForUpload = code;
+  if(gapiReady && tokenClient){
+    launchPicker();
+  } else {
+    openDriveFolder();
+    setTimeout(()=>{ const input = document.querySelector(`#card-${code} .evi-row input`); if(input) input.focus(); }, 300);
+  }
+}
+
+function initGoogleDrive(){
+  const status = document.getElementById('gStatus');
+  if(!state.drive.apiKey || !state.drive.clientId){
+    status.textContent = 'أدخل واحفظ Google API Key و OAuth Client ID أولاً.';
+    return;
+  }
+  status.textContent = 'جارٍ تحميل واجهات Google...';
+  loadScript('https://accounts.google.com/gsi/client')
+    .then(()=> loadScript('https://apis.google.com/js/api.js'))
+    .then(()=> new Promise((resolve,reject)=>{
+      try{
+        gapi.load('picker', ()=>{ pickerLoaded=true; resolve(); });
+      }catch(e){ reject(e); }
+    }))
+    .then(()=>{
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: state.drive.clientId,
+        scope: 'https://www.googleapis.com/auth/drive.file',
+        callback: (resp)=>{ if(resp.access_token){ window.__gToken = resp.access_token; launchPicker(); } }
+      });
+      gapiReady = true;
+      status.innerHTML = '✔ تم الاتصال بواجهة Google بنجاح. اضغط زر 📁 بجانب أي مؤشر للرفع المباشر.';
+    })
+    .catch(()=>{
+      status.innerHTML = '⚠️ تعذّر تحميل واجهة Google داخل هذه البيئة (قيود على النطاق/الإطار). سيتابع النظام العمل تلقائياً بالطريقة اليدوية عبر رابط مجلد Drive أعلاه.';
+    });
+}
+function loadScript(src){
+  return new Promise((resolve,reject)=>{
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+function launchPicker(){
+  if(!window.__gToken){ tokenClient.requestAccessToken(); return; }
+  try{
+    const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+      .setIncludeFolders(true);
+    if(state.drive.folderId) view.setParent(state.drive.folderId);
+    const picker = new google.picker.PickerBuilder()
+      .addView(view)
+      .setOAuthToken(window.__gToken)
+      .setDeveloperKey(state.drive.apiKey)
+      .setCallback(pickerCallback)
+      .build();
+    picker.setVisible(true);
+  }catch(e){
+    document.getElementById('gStatus').textContent = 'تعذّر فتح نافذة Google Picker: '+e.message;
+  }
+}
+function pickerCallback(data){
+  if(data.action === google.picker.Action.PICKED){
+    const file = data.docs[0];
+    const link = file.url || ('https://drive.google.com/file/d/'+file.id+'/view');
+    if(activeIndicatorForUpload){
+      state.indicators[activeIndicatorForUpload].evidence = link;
+      saveState();
+      renderDomainView(FLAT.find(i=>i.code===activeIndicatorForUpload).domain);
+      renderTopbar(); renderDashboardLite();
+    }
+  }
+}
+
+/* ===================================================================
+   8) NAFES CALCULATOR
+   =================================================================== */
+const NAFES_SUBJECTS = [['reading','مجال القراءة (Reading)'],['math','مجال الرياضيات (Math)'],['science','مجال العلوم (Science)']];
+function renderNafes(){
+  const wrap = document.getElementById('nafesInputs');
+  wrap.innerHTML = NAFES_SUBJECTS.map(([key,label])=>{
+    const v = state.nafes[key];
+    return `<div class="card nafes-card">
+      <h4>${label}</h4>
+      <div class="nafes-field"><label>درجة المدرسة الحالية</label><input type="number" id="nf-${key}-cur" value="${v.cur}" oninput="draftNafes()"></div>
+      <div class="nafes-field"><label>المتوسط الوطني المستهدف</label><input type="number" id="nf-${key}-target" value="${v.target}" oninput="draftNafes()"></div>
+      <div class="nafes-field"><label>درجة العام السابق</label><input type="number" id="nf-${key}-prev" value="${v.prev}" oninput="draftNafes()"></div>
+    </div>`;
+  }).join('');
+  renderNafesCompare();
+}
+function draftNafes(){ /* live preview without saving */ renderNafesCompare(true); }
+function saveNafes(){
+  NAFES_SUBJECTS.forEach(([key])=>{
+    state.nafes[key] = {
+      cur: document.getElementById(`nf-${key}-cur`).value,
+      target: document.getElementById(`nf-${key}-target`).value,
+      prev: document.getElementById(`nf-${key}-prev`).value,
+    };
+  });
+  saveState();
+  renderNafesCompare();
+  alert('تم حفظ نتائج نافس وتحديث التحليل.');
+}
+function renderNafesCompare(live){
+  const wrap = document.getElementById('nafesCompare');
+  const colors = {cur:'#4b3fa0', target:'#0e7d78', prev:'#c68a1a'};
+  let html='';
+  NAFES_SUBJECTS.forEach(([key,label])=>{
+    let cur,target,prev;
+    if(live){
+      cur=+document.getElementById(`nf-${key}-cur`).value||0;
+      target=+document.getElementById(`nf-${key}-target`).value||0;
+      prev=+document.getElementById(`nf-${key}-prev`).value||0;
+    } else {
+      cur=+state.nafes[key].cur||0; target=+state.nafes[key].target||0; prev=+state.nafes[key].prev||0;
+    }
+    const max = Math.max(cur,target,prev,100);
+    const gap = target? (cur-target).toFixed(1) : '—';
+    const growth = prev? (cur-prev).toFixed(1) : '—';
+    html += `<div>
+      <div style="font-size:13px; font-weight:700; margin-bottom:6px">${label} — الفجوة عن المستهدف: <span style="color:${gap<0?'#d94f3d':'#1f8a5a'}">${gap}</span> نقطة • التقدم عن العام السابق: <span style="color:${growth<0?'#d94f3d':'#1f8a5a'}">${growth}</span> نقطة</div>
+      <div class="cb-row"><span>الحالية</span><div class="cb-track"><div class="cb-fill" style="width:${cur/max*100}%; background:${colors.cur}"></div></div><b>${cur}</b></div>
+      <div class="cb-row"><span>المستهدف</span><div class="cb-track"><div class="cb-fill" style="width:${target/max*100}%; background:${colors.target}"></div></div><b>${target}</b></div>
+      <div class="cb-row"><span>العام السابق</span><div class="cb-track"><div class="cb-fill" style="width:${prev/max*100}%; background:${colors.prev}"></div></div><b>${prev}</b></div>
+    </div>`;
+  });
+  wrap.innerHTML = html;
+}
+
+/* ===================================================================
+   9) GAP ENGINE
+   =================================================================== */
+let gapFilter='all';
+function setGapFilter(f){ gapFilter=f; document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.gapf===f)); renderGaps(); }
+function renderGaps(){
+  const list = document.getElementById('gapsList');
+  let items = FLAT.map(i=>({...i, score:state.indicators[i.code].score||0, evi:state.indicators[i.code].evidence}));
+  items = items.filter(i=>{
+    if(gapFilter==='score') return i.score>0 && i.score<75;
+    if(gapFilter==='evidence') return !isValidDriveLink(i.evi);
+    return i.score<90 || !isValidDriveLink(i.evi);
+  });
+  items.sort((a,b)=>a.score-b.score);
+  if(!items.length){ list.innerHTML = `<div class="pad" style="text-align:center; color:var(--muted)">لا توجد نواقص ضمن هذا الفلتر 🎉</div>`; return; }
+  list.innerHTML = items.map(i=>{
+    const sev = i.score===0? 'sev-high' : i.score<50? 'sev-high' : i.score<75? 'sev-mid' : 'sev-none';
+    const chips=[];
+    if(i.score<75) chips.push(`<span class="chip">الدرجة: ${i.score}%</span>`);
+    if(!isValidDriveLink(i.evi)) chips.push(`<span class="chip">بلا شاهد موثّق</span>`);
+    return `<div class="gap-row"><div class="gap-sev ${sev}"></div>
+      <div class="gap-body"><b>${i.code} — ${i.text}</b><p>المجال: ${DOMAIN_META[i.domain].name} — ${i.criterion}</p><div class="chips">${chips.join('')}</div></div>
+      <button class="btn sm" onclick="go('domain-${i.domain}')">فتح</button>
+    </div>`;
+  }).join('');
+}
+
+/* ===================================================================
+   10) SAMPLES LOG
+   =================================================================== */
+function addSample(){
+  const title = document.getElementById('sTitle').value.trim();
+  if(!title) return alert('أدخل عنوان المهمة الأدائية.');
+  state.samples.unshift({id:Date.now(), title, cat:document.getElementById('sCat').value, feed:document.getElementById('sFeed').value, date:new Date().toLocaleDateString('ar-SA')});
+  document.getElementById('sTitle').value='';
+  saveState(); renderSamples();
+}
+function removeSample(id){ state.samples = state.samples.filter(s=>s.id!==id); saveState(); renderSamples(); }
+function renderSamples(){
+  const list = document.getElementById('samplesList');
+  if(!state.samples.length){ list.innerHTML = `<div class="pad" style="text-align:center; color:var(--muted)">لا توجد عينات مسجّلة بعد.</div>`; return; }
+  list.innerHTML = state.samples.map(s=>`<div class="list-row"><div class="t"><b>${s.title}</b><span>${s.cat} • التغذية: ${s.feed} • ${s.date}</span></div>
+    <div class="t-row"><span class="chip" style="background:var(--green-ghost); color:var(--green); border:0">موثّق ✔</span><button class="btn sm danger" onclick="removeSample(${s.id})">حذف</button></div></div>`).join('');
+}
+
+/* ===================================================================
+   11) READINESS CHECKLIST
+   =================================================================== */
+const READINESS_ITEMS = [
+  ['room','تجهيز مقر غرفة فريق التقويم الخارجي المستقلة','شبكة إنترنت سريعة، طابعة مجهزة، شاشة عرض، وضيافة رسمية.'],
+  ['docs','اكتمال الملفات الورقية الأساسية والتراخيص الرسمية','صك الملكية، رخصة البلدية، ترخيص الدفاع المدني، والهيكل التنظيمي.'],
+  ['labs','جاهزية جداول الملاحظة الصفية ومعامل العلوم والتقنية','جداول الحصص الأسبوعية، وتوزيع المعلمين، وقوائم الطلاب.'],
+  ['selfeval','اكتمال ملف التقويم الذاتي وخطة التحسين','تصنيف الأدلة والشواهد حسب المعايير الأربعة، ورفع خطة التحسين على المنصة.'],
+  ['interviews','تجهيز عينات المقابلات مع الفئات المستهدفة','قوائم مرشحة من الطلاب، المعلمين، أولياء الأمور، والإدارة.'],
+  ['signage','تحديث اللوحات الإرشادية وخطط الإخلاء داخل المبنى','التأكد من وضوح المخارج ولوحات السلامة في جميع الممرات.'],
+];
+function renderReadiness(){
+  const list = document.getElementById('readinessList');
+  list.innerHTML = READINESS_ITEMS.map(([id,title,desc])=>{
+    const checked = state.readiness[id]?'checked':'';
+    return `<div class="check-row"><input type="checkbox" ${checked} onchange="toggleReadiness('${id}', this.checked)">
+      <div><b>${title}</b><p>${desc}</p></div></div>`;
+  }).join('');
+}
+function toggleReadiness(id, val){ state.readiness[id]=val; saveState(); }
+
+/* ===================================================================
+   12) PLC LOG
+   =================================================================== */
+function addPlc(){
+  const topic = document.getElementById('pTopic').value.trim();
+  if(!topic) return alert('أدخل موضوع الجلسة.');
+  state.plc.unshift({id:Date.now(), topic, dept:document.getElementById('pDept').value||'—', date:document.getElementById('pDate').value||''});
+  document.getElementById('pTopic').value=''; document.getElementById('pDept').value='';
+  saveState(); renderPlc();
+}
+function removePlc(id){ state.plc = state.plc.filter(p=>p.id!==id); saveState(); renderPlc(); }
+function renderPlc(){
+  const list = document.getElementById('plcList');
+  if(!state.plc.length){ list.innerHTML = `<div class="pad" style="text-align:center; color:var(--muted)">لا توجد جلسات مسجّلة بعد.</div>`; return; }
+  list.innerHTML = state.plc.map(p=>`<div class="list-row"><div class="t"><b>${p.topic}</b><span>${p.dept} • التاريخ: ${p.date||'—'}</span></div>
+    <div class="t-row"><span class="chip" style="background:var(--green-ghost); color:var(--green); border:0">موثّق ✔</span><button class="btn sm danger" onclick="removePlc(${p.id})">حذف</button></div></div>`).join('');
+}
+
+/* ===================================================================
+   13) TEMPLATES BANK (real client-side generated downloads)
+   =================================================================== */
+const TEMPLATES = [
+  {ic:'📝', name:'نموذج تحليل الواقع الرباعي (SWOT) والخطة التشغيلية', fmt:'Word', fn:tplSwot},
+  {ic:'📋', name:'بطاقة الملاحظة الصفية وسلالم التقدير اللفظي (Rubrics)', fmt:'Word', fn:tplObservation},
+  {ic:'📊', name:'خطة التدخل العلاجي والتحسين الأكاديمي', fmt:'Excel', fn:tplImprovementPlan},
+  {ic:'📁', name:'سجل حصر شواهد المؤشرات الـ52 كاملة', fmt:'Excel', fn:tplIndicatorsRegister},
+];
+function renderTemplates(){
+  document.getElementById('templatesList').innerHTML = TEMPLATES.map((t,idx)=>`
+    <div class="template-item"><div class="t-row"><div class="ic">${t.ic}</div><div><b>${t.name}</b><span>صيغة ${t.fmt}</span></div></div>
+    <button class="btn primary sm" onclick="TEMPLATES[${idx}].fn()">⬇️ تحميل</button></div>`).join('');
+}
+function downloadBlob(filename, content, type){
+  const blob = new Blob([content], {type});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function wordDoc(title, bodyHtml){
+  return `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+  <head><meta charset="utf-8"><title>${title}</title></head>
+  <body dir="rtl" style="font-family:Arial; font-size:14px">${bodyHtml}</body></html>`;
+}
+function tplSwot(){
+  const html = wordDoc('SWOT', `<h2>نموذج تحليل الواقع الرباعي (SWOT) والخطة التشغيلية</h2>
+  <p>اسم المدرسة: ______________ &nbsp;&nbsp; العام الدراسي: ______________</p>
+  <table border="1" cellpadding="8" style="border-collapse:collapse; width:100%">
+  <tr><td><b>نقاط القوة</b></td><td><b>نقاط الضعف</b></td></tr>
+  <tr><td style="height:120px"></td><td style="height:120px"></td></tr>
+  <tr><td><b>الفرص</b></td><td><b>التحديات</b></td></tr>
+  <tr><td style="height:120px"></td><td style="height:120px"></td></tr>
+  </table>
+  <h3>أهداف الخطة التشغيلية</h3>
+  <table border="1" cellpadding="8" style="border-collapse:collapse; width:100%">
+  <tr><td><b>الهدف</b></td><td><b>الإجراءات</b></td><td><b>المسؤول</b></td><td><b>مؤشر النجاح</b></td><td><b>الزمن</b></td></tr>
+  <tr><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td></td><td></td><td></td><td></td><td></td></tr>
+  </table>`);
+  downloadBlob('نموذج_SWOT_والخطة_التشغيلية.doc', html, 'application/msword');
+}
+function tplObservation(){
+  const html = wordDoc('ملاحظة صفية', `<h2>بطاقة الملاحظة الصفية وسلم التقدير اللفظي</h2>
+  <p>المعلم: ____________ &nbsp; المادة: ____________ &nbsp; الصف: ____________ &nbsp; التاريخ: ____________</p>
+  <table border="1" cellpadding="8" style="border-collapse:collapse; width:100%">
+  <tr><td><b>عنصر الملاحظة</b></td><td><b>ضعيف</b></td><td><b>مقبول</b></td><td><b>جيد</b></td><td><b>متميز</b></td><td><b>ملاحظات</b></td></tr>
+  <tr><td>توفير فرص تعلم متكافئة</td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>الجو النفسي العام</td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>تنويع إستراتيجيات التدريس</td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>الدمج بين التعلم الصفي والإلكتروني</td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>أساليب التحفيز والتعزيز</td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>أنواع التقويم المستخدمة</td><td></td><td></td><td></td><td></td><td></td></tr>
+  <tr><td>جودة التغذية الراجعة</td><td></td><td></td><td></td><td></td><td></td></tr>
+  </table>`);
+  downloadBlob('بطاقة_الملاحظة_الصفية.doc', html, 'application/msword');
+}
+function tplImprovementPlan(){
+  let csv = 'المؤشر,النص,المجال,الدرجة الحالية,الإجراء العلاجي,المسؤول,الزمن,مؤشر النجاح\n';
+  FLAT.forEach(i=>{ csv += `"${i.code}","${i.text}","${DOMAIN_META[i.domain].name}","${state.indicators[i.code].score||0}%","","","",""\n`; });
+  downloadBlob('خطة_التدخل_العلاجي_والتحسين.csv', '\uFEFF'+csv, 'text/csv;charset=utf-8');
+}
+function tplIndicatorsRegister(){
+  let csv = 'كود المؤشر,نص المؤشر,المجال,المعيار,الدرجة %,المستوى,رابط الشاهد,ملاحظات\n';
+  FLAT.forEach(i=>{
+    const r = state.indicators[i.code];
+    csv += `"${i.code}","${i.text}","${DOMAIN_META[i.domain].name}","${i.criterion}","${r.score||0}","${levelOf(r.score||0).name}","${r.evidence||''}","${(r.notes||'').replace(/"/g,"'")}"\n`;
+  });
+  downloadBlob('سجل_حصر_شواهد_52_مؤشراً.csv', '\uFEFF'+csv, 'text/csv;charset=utf-8');
+}
+
+/* ===================================================================
+   14) COMMITTEE REPORTS (auto-populated + print)
+   =================================================================== */
+const COMMITTEES = [
+  {name:'لجنة التوجيه الطلابي والحماية', domains:[1], criteria:['قيادة العملية التعليمية','المجتمع المدرسي']},
+  {name:'لجنة الشؤون التعليمية والمناهج', domains:[2,3], criteria:[]},
+  {name:'لجنة الأمن والسلامة والصيانة', domains:[4], criteria:[]},
+];
+function renderCommittees(){
+  document.getElementById('committeesList').innerHTML = COMMITTEES.map((c,idx)=>`
+    <div class="template-item"><div class="t-row"><div class="ic">🏛️</div><div><b>${c.name}</b><span>مبني من مؤشرات المجال ${c.domains.join(' و ')}</span></div></div>
+    <button class="btn primary sm" onclick="openCommitteeReport(${idx})">🖨️ عرض وطباعة</button></div>`).join('');
+}
+function openCommitteeReport(idx){
+  const c = COMMITTEES[idx];
+  const rows = FLAT.filter(i=>c.domains.includes(i.domain) && (!c.criteria.length || c.criteria.includes(i.criterion)));
+  const avg = rows.reduce((a,i)=>a+(state.indicators[i.code].score||0),0)/(rows.length||1);
+  let body = `
+    <div style="text-align:center; margin-bottom:20px">
+      <h2 style="margin:0">${c.name}</h2>
+      <p style="color:#666">${state.school.name||'مدرسة'} — تاريخ التقرير: ${new Date().toLocaleDateString('ar-SA')}</p>
+      <p><b>متوسط الأداء: ${avg.toFixed(1)}% (${levelOf(avg).name})</b></p>
+    </div>
+    <table border="1" cellpadding="8" style="border-collapse:collapse; width:100%; font-size:13px">
+    <tr style="background:#f2f2f2"><th>الكود</th><th>المؤشر</th><th>الدرجة</th><th>المستوى</th></tr>
+    ${rows.map(i=>{const s=state.indicators[i.code].score||0; return `<tr><td>${i.code}</td><td style="text-align:right">${i.text}</td><td>${s}%</td><td>${levelOf(s).name}</td></tr>`}).join('')}
+    </table>
+    <div style="margin-top:24px; display:flex; justify-content:space-between">
+      <span>اعتماد رئيس اللجنة: ______________</span><span>اعتماد مدير المدرسة: ______________</span>
+    </div>`;
+  openPrintModal(body);
+}
+function openPrintModal(bodyHtml){
+  document.getElementById('printModalBody').innerHTML = `<button class="btn primary no-print" onclick="window.print()" style="margin-bottom:14px">🖨️ طباعة</button>` + bodyHtml;
+  document.getElementById('printModalBg').classList.add('open');
+  document.body.classList.add('printing-modal');
+}
+function closeModal(){ document.getElementById('printModalBg').classList.remove('open'); document.body.classList.remove('printing-modal'); }
+window.addEventListener('afterprint', ()=> document.body.classList.remove('printing-modal'));
+
+function printBar(label, pct, color){
+  return `<div style="margin-bottom:10px">
+    <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:3px"><span>${label}</span><b>${(+pct).toFixed(1)}%</b></div>
+    <div style="height:14px; background:#eee; border-radius:8px; overflow:hidden; border:1px solid #ddd">
+      <div style="height:100%; width:${pct}%; background:${color}"></div>
+    </div></div>`;
+}
+function printDashboardReport(){
+  const total = weightedTotal(); const lvl = levelOf(total);
+  const colors = {1:'#4b3fa0',2:'#0e7d78',3:'#c68a1a',4:'#d94f3d'};
+  let html = `<div style="text-align:center; margin-bottom:18px">
+    <h2 style="margin:0">التقرير الإحصائي الشامل للتقويم الذاتي</h2>
+    <p style="color:#666">${state.school.name||'المدرسة'} ${state.school.minNo?('— الرقم الوزاري: '+state.school.minNo):''} — تاريخ الطباعة: ${new Date().toLocaleDateString('ar-SA')}</p>
+    <p style="font-size:22px; font-weight:800; margin:6px 0">الدرجة الموزونة الإجمالية: ${total.toFixed(1)}% — المستوى: ${lvl.name}</p>
+  </div>
+  <h3>أداء المدرسة حسب المجالات الأربعة</h3>`;
+  for(const d in DOMAIN_META){
+    html += printBar(`${DOMAIN_META[d].name} (وزن ${DOMAIN_META[d].weight}%)`, domainAverage(+d), colors[d]);
+  }
+  for(const d in DOMAIN_META){
+    html += `<h3 style="margin-top:22px">تفصيل معايير المجال: ${DOMAIN_META[d].name}</h3>`;
+    DATA[d].forEach(block=>{
+      const avg = block.items.reduce((a,[code])=>a+(state.indicators[code].score||0),0)/block.items.length;
+      html += printBar(block.c, avg, colors[d]);
+    });
+  }
+  const es = evidenceStats();
+  html += `<h3 style="margin-top:22px">حالة التوثيق</h3>
+    ${printBar('شواهد موثقة بروابط Drive صالحة', es.ok/es.total*100, '#0e7d78')}
+    <p style="font-size:12.5px; color:#666">عدد الشواهد الموثقة: ${es.ok} من ${es.total} — عدد المؤشرات المتحققة بتميز: ${es.exc}</p>`;
+  openPrintModal(html);
+}
+function printDomainReport(d){
+  const meta = DOMAIN_META[d];
+  const colors = {1:'#4b3fa0',2:'#0e7d78',3:'#c68a1a',4:'#d94f3d'};
+  let html = `<div style="text-align:center; margin-bottom:18px">
+    <h2 style="margin:0">تقرير مجال: ${meta.name}</h2>
+    <p style="color:#666">${state.school.name||'المدرسة'} — تاريخ الطباعة: ${new Date().toLocaleDateString('ar-SA')}</p>
+    <p style="font-size:20px; font-weight:800">متوسط أداء المجال: ${domainAverage(d).toFixed(1)}% — المستوى: ${levelOf(domainAverage(d)).name}</p>
+  </div>`;
+  DATA[d].forEach(block=>{
+    html += `<h3>${block.c}</h3>`;
+    block.items.forEach(([code,text])=>{
+      const s = state.indicators[code].score||0;
+      html += printBar(`${code} — ${text}`, s, colors[d]);
+    });
+  });
+  openPrintModal(html);
+}
+
+/* ===================================================================
+   15) INTERVIEW BANK
+   =================================================================== */
+const INTERVIEWS = [
+  {title:'محاور مقابلة عينة الطلاب', qs:[
+    ['هل تشعر بالأمان النفسي والاحترام داخل المدرسة؟ وكيف تتعامل الإدارة مع التنمر؟','مرتبط بمؤشر 1-2-1-3 (مناخ آمن للتعلم والنمو نفسياً واجتماعياً)'],
+    ['كيف تستخدم المهارات الرقمية والتقنية في فصول العلوم والرياضيات؟','مرتبط بمؤشر 2-1-1-9 (المهارات الرقمية)'],
+    ['ما الأنشطة التطوعية والمجتمعية التي شاركت فيها هذا العام؟','مرتبط بمؤشر 3-2-1-4'],
+  ]},
+  {title:'محاور مقابلة المعلمين', qs:[
+    ['كيف يتم تحديد احتياجاتكم في خطة التطوير المهني؟ وما أثرها في الأداء الصفي؟','مرتبط بمؤشر 1-4-1-5'],
+    ['كيف تطبقون استراتيجيات التمايز والدعم للطلاب الموهوبين والمتعثرين؟','مرتبط بمؤشرات 2-1-1-1، 2-1-1-3'],
+    ['كيف توظفون نتائج التقويم في تحسين أدائكم التدريسي ونواتج تعلم طلابكم؟','مرتبط بمؤشر 2-2-1-2'],
+  ]},
+  {title:'محاور مقابلة أولياء الأمور', qs:[
+    ['كيف تتواصل معكم المدرسة بشأن تعلم أبنائكم ومستقبلهم؟','مرتبط بمؤشر 1-3-1-2'],
+    ['هل تشعرون بمشاركة فعلية في القرارات والأنشطة المدرسية؟','مرتبط بمؤشر 1-3-1-1'],
+  ]},
+  {title:'محاور مقابلة الإدارة المدرسية والموجه الطلابي', qs:[
+    ['كيف تتابعون تنفيذ الخطة التشغيلية وتقويم أثرها؟','مرتبط بمؤشر 1-1-1-2'],
+    ['ما آلية تحليل نتائج التقويم الذاتي وبناء خطة التحسين؟','مرتبط بمؤشر 1-4-1-7'],
+    ['كيف تُدار حالات السلوك والانضباط والحماية للمتعلمين؟','مرتبط بمؤشرات 1-2-1-3، 1-2-1-4'],
+  ]},
+];
+function renderInterviews(){
+  document.getElementById('interviewAcc').innerHTML = INTERVIEWS.map((sec,idx)=>`
+    <div class="acc"><div class="acc-head" onclick="this.nextElementSibling.classList.toggle('open')"><b>${idx+1}. ${sec.title}</b><span>▾</span></div>
+    <div class="acc-body ${idx===0?'open':''}">${sec.qs.map(([q,tag])=>`<div class="qa"><b>${q}</b><p>${tag}</p></div>`).join('')}</div></div>`).join('');
+}
+
+/* ===================================================================
+   16) SCHOOL INFO / SETTINGS
+   =================================================================== */
+function renderSchoolForm(){
+  const s = state.school;
+  document.getElementById('stName').value = s.name||'';
+  document.getElementById('stMinNo').value = s.minNo||'';
+  document.getElementById('stAdmin').value = s.admin||'';
+  document.getElementById('stOffice').value = s.office||'';
+  document.getElementById('stType').value = s.type||'حكومي';
+  document.getElementById('stStage').value = s.stage||'ابتدائية';
+  document.getElementById('stGender').value = s.gender||'بنين';
+  document.getElementById('stStudents').value = s.students||'';
+  document.getElementById('stTeachers').value = s.teachers||'';
+  document.getElementById('driveFolder').value = state.drive.folder||'';
+  document.getElementById('gApiKey').value = state.drive.apiKey||'';
+  document.getElementById('gClientId').value = state.drive.clientId||'';
+  document.getElementById('gFolderId').value = state.drive.folderId||'';
+}
+function saveSchool(){
+  state.school = {
+    name: document.getElementById('stName').value.trim(),
+    minNo: document.getElementById('stMinNo').value.trim(),
+    admin: document.getElementById('stAdmin').value.trim(),
+    office: document.getElementById('stOffice').value.trim(),
+    type: document.getElementById('stType').value,
+    stage: document.getElementById('stStage').value,
+    gender: document.getElementById('stGender').value,
+    students: document.getElementById('stStudents').value,
+    teachers: document.getElementById('stTeachers').value,
+  };
+  saveState(); renderTopbar();
+  alert('تم حفظ بيانات المدرسة.');
+}
+
+/* ===================================================================
+   17) SAMPLE DATA LOADER / RESET / EXPORT / IMPORT
+   =================================================================== */
+function loadSampleData(){
+  if(!confirm('سيتم تعبئة بيانات نموذجية مستخرجة من تقرير تقويم مدرسي فعلي (2025م) لأغراض العرض والتجربة. المؤشرات غير المذكورة صراحة في التقرير الأصلي ستبقى فارغة لتعبئتها يدوياً. متابعة؟')) return;
+  Object.assign(state.school, SAMPLE_SCHOOL);
+  Object.keys(SAMPLE_SCORES).forEach(code=>{ if(state.indicators[code]) state.indicators[code].score = SAMPLE_SCORES[code]; });
+  saveState();
+  renderEverything();
+  go('dashboard');
+}
+function resetAll(){
+  if(!confirm('سيتم حذف جميع البيانات المحفوظة نهائياً. هل أنت متأكد؟')) return;
+  localStorage.removeItem(STORE_KEY);
+  state = loadState();
+  renderEverything();
+  go('dashboard');
+}
+function exportJson(){
+  downloadBlob('نسخة_احتياطية_نظام_الاعتماد.json', JSON.stringify(state, null, 2), 'application/json');
+}
+function importJson(evt){
+  const file = evt.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const parsed = JSON.parse(reader.result);
+      state = Object.assign(defaultState(), parsed);
+      saveState(); renderEverything();
+      alert('تم استيراد النسخة الاحتياطية بنجاح.');
+    }catch(e){ alert('ملف غير صالح.'); }
+  };
+  reader.readAsText(file);
+}
+
+/* ===================================================================
+   18) BOOTSTRAP
+   =================================================================== */
+function renderEverything(){
+  renderTopbar();
+  renderDashboard();
+  renderAllDomains();
+  renderNafes();
+  renderGaps();
+  renderSamples();
+  renderReadiness();
+  renderPlc();
+  renderTemplates();
+  renderCommittees();
+  renderInterviews();
+  renderSchoolForm();
+}
+renderEverything();
+</script>
+</body>
+</html>
