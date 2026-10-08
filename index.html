@@ -724,12 +724,12 @@ function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); cl
 /* ===================================================================
    2b) CLOUD SYNC — مزامنة مشتركة عبر Google Apps Script + ملف JSON على Drive
    =================================================================== */
-const CLOUD_DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbwJLtM0fLs3JKbGkXfJh28HDKKIMcc7M7IYcKWm4cgtCT9IFnUOQCsDtJE3c6EFHVmN/exec';   // ضع هنا رابط Web App ليعمل تلقائياً لكل من يفتح الموقع
+const CLOUD_DEFAULT_URL = 'https://script.google.com/macros/s/AKfycby0o36K_qLRv_LzpXf-wDfo6OJi0QdoAntjz_uPHLV43yJWuL2nzvI50kR7L8_WSl1Q/exec';   // ضع هنا رابط Web App ليعمل تلقائياً لكل من يفتح الموقع
 const CLOUD_DEFAULT_CODE = 'school2026';  // الرمز الافتراضي (اختياري)
 const CLOUD_KEY = 'schoolCloud_v1';
 let cloud = {url:'', code:''};
 try{ cloud = Object.assign(cloud, JSON.parse(localStorage.getItem(CLOUD_KEY)||'{}')); }catch(e){}
-if(!cloud.url) cloud.url = CLOUD_DEFAULT_URL;
+if(!cloud.url || cloud.url==='https://script.google.com/macros/s/AKfycbwJLtM0fLs3JKbGkXfJh28HDKKIMcc7M7IYcKWm4cgtCT9IFnUOQCsDtJE3c6EFHVmN/exec') cloud.url = CLOUD_DEFAULT_URL;
 if(!cloud.code) cloud.code = CLOUD_DEFAULT_CODE;
 let cloudDirty = false, cloudBusy = false, cloudTimer = null, cloudPoll = null;
 
