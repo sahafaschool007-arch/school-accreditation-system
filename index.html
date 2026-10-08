@@ -300,6 +300,7 @@ input,textarea,select{font-family:inherit; font-size:14px}
       </div>
       <div class="stat-pills">
         <span class="pill big" id="tbLevel">— بيانات غير كافية</span>
+        <span class="pill" id="tbCloud" title="حالة المزامنة السحابية">☁️ محلي فقط</span>
         <span class="pill">الدرجة الموزونة <span class="n" id="tbScore">0%</span></span>
         <button class="btn sm" onclick="go('settings')">🏫 بيانات المدرسة</button>
       </div>
@@ -533,6 +534,22 @@ input,textarea,select{font-family:inherit; font-size:14px}
           <div id="gStatus" style="margin-top:10px; font-size:12.5px; color:var(--muted)"></div>
         </div>
 
+        <div class="section-title">☁️ المزامنة السحابية (مشاركة البيانات بين جميع المستخدمين)</div>
+        <div class="help-note">
+          عند التفعيل تُحفظ البيانات في ملف JSON على Google Drive الخاص بالمدرسة عبر Google Apps Script، فيرى كل من يملك الرمز نفس البيانات على أي جهاز ويحدّثها. تتم المزامنة تلقائياً بعد كل تعديل وكل 20 ثانية. إذا عدّل شخصان نفس المؤشر في اللحظة نفسها فالأحدث هو المعتمد.
+        </div>
+        <div class="card pad">
+          <div class="form-grid" style="grid-template-columns:2fr 1fr">
+            <div><label>رابط Web App (من Apps Script)</label><input id="cloudUrl" placeholder="https://script.google.com/macros/s/.../exec"></div>
+            <div><label>رمز الدخول المشترك</label><input id="cloudCode" type="password" placeholder="الرمز الذي وضعته في Code.gs"></div>
+          </div>
+          <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap">
+            <button class="btn primary" onclick="saveCloudSettings()">🔗 حفظ وتفعيل المزامنة</button>
+            <button class="btn" onclick="cloudDirty=true; cloudSync()">🔄 مزامنة الآن</button>
+          </div>
+          <div id="cloudStatus" style="margin-top:10px; font-size:12.5px; color:var(--muted)"></div>
+        </div>
+
         <div class="section-title">🗃️ إدارة البيانات</div>
         <div class="card pad" style="display:flex; gap:10px; flex-wrap:wrap">
           <button class="btn" onclick="exportJson()">⬇️ تصدير نسخة احتياطية JSON</button>
@@ -677,12 +694,12 @@ let state = loadState();
 
 function defaultState(){
   const indicators = {};
-  FLAT.forEach(i=> indicators[i.code] = {score:0, evidence:'', notes:''});
+  FLAT.forEach(i=> indicators[i.code] = {score:0, evidence:'', notes:'', ts:0});
   return {
     school:{name:'', minNo:'', admin:'', office:'', type:'حكومي', stage:'ابتدائية', gender:'بنين', students:'', teachers:''},
     indicators,
     nafes:{reading:{cur:'',target:'',prev:''}, math:{cur:'',target:'',prev:''}, science:{cur:'',target:'',prev:''}},
-    samples:[], readiness:{}, plc:[],
+    samples:[], readiness:{}, plc:[], meta:{ts:{}, deleted:[]},
     drive:{folder:'', apiKey:'', clientId:'', folderId:''},
   };
 }
@@ -693,11 +710,142 @@ function loadState(){
     const parsed = JSON.parse(raw);
     const def = defaultState();
     // merge to survive schema upgrades
-    FLAT.forEach(i=>{ if(!parsed.indicators[i.code]) parsed.indicators[i.code] = {score:0, evidence:'', notes:''}; });
-    return Object.assign(def, parsed, {indicators: Object.assign(def.indicators, parsed.indicators)});
+    FLAT.forEach(i=>{ if(!parsed.indicators[i.code]) parsed.indicators[i.code] = {score:0, evidence:'', notes:'', ts:0}; });
+    const st = Object.assign(def, parsed, {indicators: Object.assign(def.indicators, parsed.indicators)});
+    if(!st.meta) st.meta = {ts:{}, deleted:[]};
+    if(!st.meta.ts) st.meta.ts = {};
+    if(!st.meta.deleted) st.meta.deleted = [];
+    return st;
   }catch(e){ return defaultState(); }
 }
-function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+
+function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); cloudDirty = true; scheduleCloudSync(); }
+
+/* ===================================================================
+   2b) CLOUD SYNC — مزامنة مشتركة عبر Google Apps Script + ملف JSON على Drive
+   =================================================================== */
+const CLOUD_DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbwJLtM0fLs3JKbGkXfJh28HDKKIMcc7M7IYcKWm4cgtCT9IFnUOQCsDtJE3c6EFHVmN/exec';   // ضع هنا رابط Web App ليعمل تلقائياً لكل من يفتح الموقع
+const CLOUD_DEFAULT_CODE = 'school2026';  // الرمز الافتراضي (اختياري)
+const CLOUD_KEY = 'schoolCloud_v1';
+let cloud = {url:'', code:''};
+try{ cloud = Object.assign(cloud, JSON.parse(localStorage.getItem(CLOUD_KEY)||'{}')); }catch(e){}
+if(!cloud.url) cloud.url = CLOUD_DEFAULT_URL;
+if(!cloud.code) cloud.code = CLOUD_DEFAULT_CODE;
+let cloudDirty = false, cloudBusy = false, cloudTimer = null, cloudPoll = null;
+
+function cloudOn(){ return !!(cloud.url && cloud.code); }
+function setCloudStatus(msg, ok){
+  const el = document.getElementById('cloudStatus');
+  if(el){ el.textContent = msg; el.style.color = ok? 'var(--green)' : 'var(--muted)'; }
+  const pill = document.getElementById('tbCloud');
+  if(pill){ pill.textContent = !cloudOn()? '☁️ محلي فقط' : (ok? '☁️ متزامن' : '☁️ …'); }
+}
+function syncable(s){
+  return {school:s.school, indicators:s.indicators, nafes:s.nafes, samples:s.samples,
+          readiness:s.readiness, plc:s.plc, meta:s.meta, drive:{folder:(s.drive||{}).folder||''}};
+}
+function mergeStates(L, R){
+  if(!R || !R.indicators) return L;
+  const out = JSON.parse(JSON.stringify(L));
+  const lm = L.meta || {ts:{}, deleted:[]}, rm = R.meta || {ts:{}, deleted:[]};
+  out.meta = {ts:{}, deleted:Array.from(new Set([...(lm.deleted||[]), ...(rm.deleted||[])]))};
+  ['school','nafes','readiness'].forEach(k=>{
+    const lt = (lm.ts||{})[k]||0, rt = (rm.ts||{})[k]||0;
+    out[k] = rt>lt ? JSON.parse(JSON.stringify(R[k])) : out[k];
+    out.meta.ts[k] = Math.max(lt, rt);
+  });
+  FLAT.forEach(i=>{
+    const l = L.indicators[i.code] || {ts:0}, r = R.indicators[i.code];
+    if(r && (r.ts||0) > (l.ts||0)) out.indicators[i.code] = JSON.parse(JSON.stringify(r));
+  });
+  ['samples','plc'].forEach(k=>{
+    const map = {};
+    [...(R[k]||[]), ...(L[k]||[])].forEach(x=>{ map[x.id] = x; });
+    out[k] = Object.values(map).filter(x=>!out.meta.deleted.includes(x.id)).sort((a,b)=>b.id-a.id);
+  });
+  if(!out.drive.folder && R.drive && R.drive.folder) out.drive.folder = R.drive.folder;
+  return out;
+}
+function bumpAll(){
+  const now = Date.now();
+  FLAT.forEach(i=>{ state.indicators[i.code].ts = now; });
+  if(!state.meta) state.meta = {ts:{}, deleted:[]};
+  state.meta.ts.school = now; state.meta.ts.nafes = now; state.meta.ts.readiness = now;
+}
+function isTyping(){
+  const a = document.activeElement;
+  return !!a && ['INPUT','TEXTAREA','SELECT'].includes(a.tagName) && a.type!=='checkbox' && a.type!=='button';
+}
+async function cloudPull(){
+  const sep = cloud.url.includes('?') ? '&' : '?';
+  const r = await fetch(cloud.url + sep + 'code=' + encodeURIComponent(cloud.code) + '&t=' + Date.now());
+  const j = await r.json();
+  if(j.error) throw new Error(j.error==='unauthorized' ? 'رمز الدخول غير صحيح' : j.error);
+  return j.data;
+}
+async function cloudPush(data){
+  const r = await fetch(cloud.url, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({code:cloud.code, data})});
+  const j = await r.json();
+  if(j.error) throw new Error(j.error==='unauthorized' ? 'رمز الدخول غير صحيح' : j.error);
+}
+async function cloudSync(force){
+  if(!cloudOn() || cloudBusy) return;
+  cloudBusy = true; setCloudStatus('جارٍ المزامنة...', false);
+  try{
+    let merged = state;
+    if(!force){
+      const remote = await cloudPull();
+      merged = mergeStates(state, remote);
+    }
+    const changed = JSON.stringify(syncable(merged)) !== JSON.stringify(syncable(state));
+    if(changed){
+      if(isTyping()){ cloudBusy = false; setTimeout(()=>cloudSync(), 3000); return; }
+      Object.assign(state, merged);
+      localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      renderEverything();
+    }
+    if(cloudDirty || force){
+      cloudDirty = false;
+      await cloudPush(syncable(state));
+    }
+    setCloudStatus('✔ متزامن — آخر مزامنة ' + new Date().toLocaleTimeString('ar-SA'), true);
+  }catch(e){
+    setCloudStatus('⚠️ تعذّرت المزامنة: ' + e.message, false);
+  }
+  cloudBusy = false;
+}
+function scheduleCloudSync(){
+  if(!cloudOn()) return;
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(()=>cloudSync(), 1500);
+}
+function startCloudPolling(){
+  clearInterval(cloudPoll);
+  if(cloudOn()) cloudPoll = setInterval(()=>cloudSync(), 20000);
+}
+function saveCloudSettings(){
+  cloud.url = document.getElementById('cloudUrl').value.trim();
+  cloud.code = document.getElementById('cloudCode').value.trim();
+  localStorage.setItem(CLOUD_KEY, JSON.stringify({url:cloud.url, code:cloud.code}));
+  startCloudPolling();
+  if(!cloudOn()){ setCloudStatus('أدخل الرابط والرمز معاً.', false); return; }
+  cloudDirty = true;
+  cloudSync();
+}
+function renderCloudForm(){
+  const u = document.getElementById('cloudUrl'), c = document.getElementById('cloudCode');
+  if(u) u.value = cloud.url || '';
+  if(c) c.value = cloud.code || '';
+  setCloudStatus(cloudOn()? 'مفعّلة — اضغط «مزامنة الآن» للتحقق.' : 'غير مفعّلة — البيانات محلية على هذا الجهاز فقط.', false);
+}
+function cloudInit(){
+  renderCloudForm();
+  startCloudPolling();
+  if(cloudOn()) setTimeout(()=>cloudSync(), 600);
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) cloudSync(); });
+}
+
 
 /* ===================================================================
    3) SCORING HELPERS
@@ -891,7 +1039,7 @@ function renderDomainView(d){
 function renderAllDomains(){ for(const d in DOMAIN_META) renderDomainView(+d); }
 
 function updateScore(code, val){
-  state.indicators[code].score = +val;
+  state.indicators[code].score = +val; state.indicators[code].ts = Date.now();
   document.getElementById('num-'+code).textContent = val+'%';
   const lvl = levelOf(+val);
   const tag = document.getElementById('lvl-'+code);
@@ -899,13 +1047,13 @@ function updateScore(code, val){
   saveState(); renderTopbar(); renderDashboardLite();
 }
 function updateEvidence(code, val){
-  state.indicators[code].evidence = val.trim();
+  state.indicators[code].evidence = val.trim(); state.indicators[code].ts = Date.now();
   const ok = isValidDriveLink(val);
   const st = document.getElementById('evi-'+code);
   if(st){ st.textContent = ok? '✔ رابط Drive صالح ومرتبط' : '— لم يُرفق شاهد بعد'; st.className = 'evi-status '+(ok?'ok':'bad'); }
   saveState(); renderDashboardLite();
 }
-function updateNotes(code, val){ state.indicators[code].notes = val; saveState(); }
+function updateNotes(code, val){ state.indicators[code].notes = val; state.indicators[code].ts = Date.now(); saveState(); }
 function renderDashboardLite(){ if(document.getElementById('view-dashboard').classList.contains('active')) renderDashboard(); }
 
 /* ===================================================================
@@ -996,7 +1144,7 @@ function pickerCallback(data){
     const file = data.docs[0];
     const link = file.url || ('https://drive.google.com/file/d/'+file.id+'/view');
     if(activeIndicatorForUpload){
-      state.indicators[activeIndicatorForUpload].evidence = link;
+      state.indicators[activeIndicatorForUpload].evidence = link; state.indicators[activeIndicatorForUpload].ts = Date.now();
       saveState();
       renderDomainView(FLAT.find(i=>i.code===activeIndicatorForUpload).domain);
       renderTopbar(); renderDashboardLite();
@@ -1030,6 +1178,7 @@ function saveNafes(){
       prev: document.getElementById(`nf-${key}-prev`).value,
     };
   });
+  state.meta.ts.nafes = Date.now();
   saveState();
   renderNafesCompare();
   alert('تم حفظ نتائج نافس وتحديث التحليل.');
@@ -1097,7 +1246,7 @@ function addSample(){
   document.getElementById('sTitle').value='';
   saveState(); renderSamples();
 }
-function removeSample(id){ state.samples = state.samples.filter(s=>s.id!==id); saveState(); renderSamples(); }
+function removeSample(id){ state.samples = state.samples.filter(s=>s.id!==id); state.meta.deleted.push(id); saveState(); renderSamples(); }
 function renderSamples(){
   const list = document.getElementById('samplesList');
   if(!state.samples.length){ list.innerHTML = `<div class="pad" style="text-align:center; color:var(--muted)">لا توجد عينات مسجّلة بعد.</div>`; return; }
@@ -1124,7 +1273,7 @@ function renderReadiness(){
       <div><b>${title}</b><p>${desc}</p></div></div>`;
   }).join('');
 }
-function toggleReadiness(id, val){ state.readiness[id]=val; saveState(); }
+function toggleReadiness(id, val){ state.readiness[id]=val; state.meta.ts.readiness = Date.now(); saveState(); }
 
 /* ===================================================================
    12) PLC LOG
@@ -1136,7 +1285,7 @@ function addPlc(){
   document.getElementById('pTopic').value=''; document.getElementById('pDept').value='';
   saveState(); renderPlc();
 }
-function removePlc(id){ state.plc = state.plc.filter(p=>p.id!==id); saveState(); renderPlc(); }
+function removePlc(id){ state.plc = state.plc.filter(p=>p.id!==id); state.meta.deleted.push(id); saveState(); renderPlc(); }
 function renderPlc(){
   const list = document.getElementById('plcList');
   if(!state.plc.length){ list.innerHTML = `<div class="pad" style="text-align:center; color:var(--muted)">لا توجد جلسات مسجّلة بعد.</div>`; return; }
@@ -1352,6 +1501,7 @@ function renderSchoolForm(){
   document.getElementById('gApiKey').value = state.drive.apiKey||'';
   document.getElementById('gClientId').value = state.drive.clientId||'';
   document.getElementById('gFolderId').value = state.drive.folderId||'';
+  renderCloudForm();
 }
 function saveSchool(){
   state.school = {
@@ -1365,6 +1515,7 @@ function saveSchool(){
     students: document.getElementById('stStudents').value,
     teachers: document.getElementById('stTeachers').value,
   };
+  state.meta.ts.school = Date.now();
   saveState(); renderTopbar();
   alert('تم حفظ بيانات المدرسة.');
 }
@@ -1374,16 +1525,17 @@ function saveSchool(){
    =================================================================== */
 function loadSampleData(){
   if(!confirm('سيتم تعبئة بيانات نموذجية مستخرجة من تقرير تقويم مدرسي فعلي (2025م) لأغراض العرض والتجربة. المؤشرات غير المذكورة صراحة في التقرير الأصلي ستبقى فارغة لتعبئتها يدوياً. متابعة؟')) return;
-  Object.assign(state.school, SAMPLE_SCHOOL);
-  Object.keys(SAMPLE_SCORES).forEach(code=>{ if(state.indicators[code]) state.indicators[code].score = SAMPLE_SCORES[code]; });
+  Object.assign(state.school, SAMPLE_SCHOOL); state.meta.ts.school = Date.now();
+  Object.keys(SAMPLE_SCORES).forEach(code=>{ if(state.indicators[code]){ state.indicators[code].score = SAMPLE_SCORES[code]; state.indicators[code].ts = Date.now(); } });
   saveState();
   renderEverything();
   go('dashboard');
 }
 function resetAll(){
-  if(!confirm('سيتم حذف جميع البيانات المحفوظة نهائياً. هل أنت متأكد؟')) return;
+  if(!confirm('سيتم حذف جميع البيانات المحفوظة نهائياً'+(cloudOn()?' (وستُحذف من المزامنة السحابية المشتركة أيضاً لدى الجميع)':'')+'. هل أنت متأكد؟')) return;
   localStorage.removeItem(STORE_KEY);
   state = loadState();
+  if(cloudOn()){ state.meta.ts.school = Date.now(); state.meta.ts.nafes = Date.now(); state.meta.ts.readiness = Date.now(); saveState(); cloudSync(true); }
   renderEverything();
   go('dashboard');
 }
@@ -1397,6 +1549,8 @@ function importJson(evt){
     try{
       const parsed = JSON.parse(reader.result);
       state = Object.assign(defaultState(), parsed);
+      if(!state.meta) state.meta = {ts:{}, deleted:[]}; if(!state.meta.ts) state.meta.ts = {}; if(!state.meta.deleted) state.meta.deleted = [];
+      bumpAll();
       saveState(); renderEverything();
       alert('تم استيراد النسخة الاحتياطية بنجاح.');
     }catch(e){ alert('ملف غير صالح.'); }
@@ -1422,6 +1576,7 @@ function renderEverything(){
   renderSchoolForm();
 }
 renderEverything();
+cloudInit();
 </script>
 </body>
 </html>
