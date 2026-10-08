@@ -300,7 +300,7 @@ input,textarea,select{font-family:inherit; font-size:14px}
       </div>
       <div class="stat-pills">
         <span class="pill big" id="tbLevel">— بيانات غير كافية</span>
-        <span class="pill" id="tbCloud" title="حالة المزامنة السحابية">☁️ محلي فقط</span>
+        <span class="pill" id="tbCloud" onclick="go('settings')" title="حالة المزامنة السحابية">☁️ محلي فقط</span>
         <span class="pill">الدرجة الموزونة <span class="n" id="tbScore">0%</span></span>
         <button class="btn sm" onclick="go('settings')">🏫 بيانات المدرسة</button>
       </div>
@@ -738,7 +738,14 @@ function setCloudStatus(msg, ok){
   const el = document.getElementById('cloudStatus');
   if(el){ el.textContent = msg; el.style.color = ok? 'var(--green)' : 'var(--muted)'; }
   const pill = document.getElementById('tbCloud');
-  if(pill){ pill.textContent = !cloudOn()? '☁️ محلي فقط' : (ok? '☁️ متزامن' : '☁️ …'); }
+  if(pill){
+    const err = String(msg||'').startsWith('⚠️');
+    pill.textContent = !cloudOn()? '☁️ محلي فقط' : (ok? '☁️ متزامن' : (err? '⚠️ المزامنة متعطلة' : '☁️ جارٍ المزامنة...'));
+    pill.title = msg || '';
+    pill.style.cursor = 'pointer';
+    pill.style.background = err? 'var(--coral-ghost)' : ok? 'var(--green-ghost)' : '';
+    pill.style.color = err? 'var(--coral)' : ok? 'var(--green)' : '';
+  }
 }
 function syncable(s){
   return {school:s.school, indicators:s.indicators, nafes:s.nafes, samples:s.samples,
@@ -751,12 +758,16 @@ function mergeStates(L, R){
   out.meta = {ts:{}, deleted:Array.from(new Set([...(lm.deleted||[]), ...(rm.deleted||[])]))};
   ['school','nafes','readiness'].forEach(k=>{
     const lt = (lm.ts||{})[k]||0, rt = (rm.ts||{})[k]||0;
-    out[k] = rt>lt ? JSON.parse(JSON.stringify(R[k])) : out[k];
+    const lEmptySec = k==='school' ? !(L.school||{}).name : k==='readiness' ? !Object.keys(L.readiness||{}).length
+                      : !Object.values(L.nafes||{}).some(v=>v&&(v.cur||v.target||v.prev));
+    out[k] = (rt>lt || (lEmptySec && R[k])) ? JSON.parse(JSON.stringify(R[k])) : out[k];
     out.meta.ts[k] = Math.max(lt, rt);
   });
   FLAT.forEach(i=>{
     const l = L.indicators[i.code] || {ts:0}, r = R.indicators[i.code];
-    if(r && (r.ts||0) > (l.ts||0)) out.indicators[i.code] = JSON.parse(JSON.stringify(r));
+    const lEmpty = !(l.score>0) && !l.evidence && !l.notes;
+    const rHas = r && (r.score>0 || r.evidence || r.notes);
+    if(r && ((r.ts||0) > (l.ts||0) || (lEmpty && rHas))) out.indicators[i.code] = JSON.parse(JSON.stringify(r));
   });
   ['samples','plc'].forEach(k=>{
     const map = {};
@@ -776,15 +787,19 @@ function isTyping(){
   const a = document.activeElement;
   return !!a && ['INPUT','TEXTAREA','SELECT'].includes(a.tagName) && a.type!=='checkbox' && a.type!=='button';
 }
+function fetchT(u,o){
+  const ac = new AbortController(); const t = setTimeout(()=>ac.abort(), 20000);
+  return fetch(u, Object.assign({signal:ac.signal}, o||{})).finally(()=>clearTimeout(t));
+}
 async function cloudPull(){
   const sep = cloud.url.includes('?') ? '&' : '?';
-  const r = await fetch(cloud.url + sep + 'code=' + encodeURIComponent(cloud.code) + '&t=' + Date.now());
+  const r = await fetchT(cloud.url + sep + 'code=' + encodeURIComponent(cloud.code) + '&t=' + Date.now());
   const j = await r.json();
   if(j.error) throw new Error(j.error==='unauthorized' ? 'رمز الدخول غير صحيح' : j.error);
   return j.data;
 }
 async function cloudPush(data){
-  const r = await fetch(cloud.url, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+  const r = await fetchT(cloud.url, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
     body: JSON.stringify({code:cloud.code, data})});
   const j = await r.json();
   if(j.error) throw new Error(j.error==='unauthorized' ? 'رمز الدخول غير صحيح' : j.error);
@@ -796,6 +811,7 @@ async function cloudSync(force){
     let merged = state;
     if(!force){
       const remote = await cloudPull();
+      if(!remote || !remote.indicators) cloudDirty = true;
       merged = mergeStates(state, remote);
     }
     const changed = JSON.stringify(syncable(merged)) !== JSON.stringify(syncable(state));
@@ -811,7 +827,12 @@ async function cloudSync(force){
     }
     setCloudStatus('✔ متزامن — آخر مزامنة ' + new Date().toLocaleTimeString('ar-SA'), true);
   }catch(e){
-    setCloudStatus('⚠️ تعذّرت المزامنة: ' + e.message, false);
+    let why = e.message||String(e);
+    if(why.includes('رمز الدخول')) why += ' — الرمز في Code.gs مختلف عن school2026 أو لم تنشر نسخة جديدة (نشر ← إدارة عمليات النشر ← تعديل ← إصدار جديد)';
+    else if(/abort/i.test(why)) why = 'انتهت مهلة الاتصال بالخادم — تحقق من رابط /exec ومن أن الوصول Anyone';
+    else if(/Failed to fetch|NetworkError|Load failed/i.test(why)) why = 'تعذّر الوصول للخادم — تأكد أن النشر "Web app" وصلاحية الوصول "أي شخص (Anyone)" وأن الرابط ينتهي بـ /exec';
+    else if(/JSON|Unexpected token/i.test(why)) why = 'الرابط لا يُرجع بيانات — غالباً الوصول ليس "Anyone" أو الرابط خاطئ';
+    setCloudStatus('⚠️ تعذّرت المزامنة: ' + why, false);
   }
   cloudBusy = false;
 }
